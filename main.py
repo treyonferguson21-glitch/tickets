@@ -256,12 +256,11 @@ class TicketButtons(View):
 
     @discord.ui.button(label="Close", style=discord.ButtonStyle.danger, emoji="🔒", custom_id="ticket_close")
     async def close_button(self, interaction: discord.Interaction, button: Button):
-        if is_ticket_opener(interaction.channel, interaction.user):
-            return await interaction.response.send_message("You cannot close your own ticket.", ephemeral=True)
-        if not has_staff_permission(interaction.user):
-            return await interaction.response.send_message("Only staff can close tickets.", ephemeral=True)
+        # Ticket opener OR staff can close
+        if not (is_ticket_opener(interaction.channel, interaction.user) or has_staff_permission(interaction.user)):
+            return await interaction.response.send_message("Only staff or the ticket owner can close tickets.", ephemeral=True)
 
-        await interaction.response.send_message("Closing ticket...")
+        await interaction.response.defer()
         await close_ticket(interaction.channel, interaction.user)
 
 
@@ -417,42 +416,39 @@ async def create_ticket(interaction: discord.Interaction, ticket_type: str):
 
 # ==================== CLOSE TICKET ====================
 async def close_ticket(channel: discord.TextChannel, closer: discord.Member):
-    messages = [msg async for msg in channel.history(limit=100, oldest_first=True)]
+    # Generate transcript quickly then delete channel immediately
+    try:
+        messages = [msg async for msg in channel.history(limit=50, oldest_first=True)]
+        transcript = "---- TICKET LOGS ----\n\n"
+        for msg in messages:
+            time = msg.created_at.strftime("%d/%m/%Y %H:%M")
+            transcript += f"{time} - {msg.author}: {msg.content}\n"
+            if msg.embeds:
+                transcript += f"<EMBED {msg.embeds[0].title or 'Embed'}>\n"
 
-    transcript = "---- TICKET LOGS ----\n\n"
-    for msg in messages:
-        time = msg.created_at.strftime("%d/%m/%Y %H:%M")
-        transcript += f"{time} - {msg.author}: {msg.content}\n"
-        if msg.embeds:
-            transcript += f"<EMBED {msg.embeds[0].title or 'Embed'}>\n"
+        with open("log.txt", "w", encoding="utf-8") as f:
+            f.write(transcript)
 
-    with open("log.txt", "w", encoding="utf-8") as f:
-        f.write(transcript)
-
-    file = discord.File("log.txt", filename="log.txt")
-
-    log_channel = bot.get_channel(int(config["transcriptChannelId"]))
-    if log_channel:
-        await log_channel.send(
-            content=f"Ticket closed by {closer.mention}\nChannel: `{channel.name}`",
-            file=file
-        )
-
-    if channel.topic and channel.topic.startswith("ticket-"):
-        try:
-            user_id = int(channel.topic.replace("ticket-", ""))
-            user = await bot.fetch_user(user_id)
-            await user.send(
-                content="Your ticket was closed\nHere is a transcript of the ticket",
+        log_channel = bot.get_channel(int(config.get("transcriptChannelId", 0) or 0))
+        if log_channel:
+            await log_channel.send(
+                content=f"Ticket closed by {closer.mention}\nChannel: `{channel.name}`",
                 file=discord.File("log.txt", filename="log.txt")
             )
-        except:
-            pass
+    except:
+        pass
 
-    await channel.delete()
+    # Delete channel immediately
+    try:
+        await channel.delete()
+    except:
+        pass
 
     if os.path.exists("log.txt"):
-        os.remove("log.txt")
+        try:
+            os.remove("log.txt")
+        except:
+            pass
 
 
 # ==================== EVENTS ====================
@@ -460,6 +456,10 @@ async def close_ticket(channel: discord.TextChannel, closer: discord.Member):
 async def on_ready():
     print(f"Logged in as {bot.user} (ID: {bot.user.id})")
     print("Bot is ready!")
+
+    await bot.change_presence(
+        activity=discord.Streaming(name="LEOS EMPIRE", url="https://twitch.tv/discord")
+    )
 
     bot.add_view(TicketView())
     bot.add_view(TicketButtons())
@@ -582,16 +582,13 @@ async def claim_command(ctx: commands.Context):
 
 @bot.command(name="close")
 async def close_command(ctx: commands.Context):
-    if is_ticket_opener(ctx.channel, ctx.author):
-        return await ctx.reply("❌ You cannot close your own ticket.", mention_author=False)
-
-    if not has_staff_permission(ctx.author):
-        return await ctx.reply("❌ You do not have permission to use this command.", mention_author=False)
-
     if not ctx.channel.topic or not str(ctx.channel.topic).startswith("ticket-"):
         return await ctx.reply("❌ This command can only be used inside ticket channels.")
 
-    await ctx.reply("Closing ticket...")
+    # Ticket opener OR staff can close
+    if not (is_ticket_opener(ctx.channel, ctx.author) or has_staff_permission(ctx.author)):
+        return await ctx.reply("❌ Only staff or the ticket owner can close tickets.", mention_author=False)
+
     await close_ticket(ctx.channel, ctx.author)
 
 
