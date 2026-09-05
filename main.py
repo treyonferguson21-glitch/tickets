@@ -20,7 +20,7 @@ bot = commands.Bot(command_prefix="+", intents=intents)
 
 # All roles that can see Support + Scammer tickets
 ALL_STAFF_ROLES = [
-    "1540425618620162139",  # founder
+    "1545842045258825809",  # Creator
     "1545482300601405590",  # Mari
     "1512494871171043543",  # owners
     "1544803993480466563",  # co owners
@@ -44,7 +44,7 @@ SUPPORT_ONLY_ROLES = [
 
 # Only Manager and above (excluding Admin + Head Staff) can see Reward tickets
 REWARD_STAFF_ROLES = [
-    "1540425618620162139",  # founder
+    "1545842045258825809",  # Creator
     "1545482300601405590",  # Mari
     "1512494871171043543",  # owners
     "1544803993480466563",  # co owners
@@ -53,15 +53,15 @@ REWARD_STAFF_ROLES = [
     "1512494871171043541",  # manager
 ]
 
-# Only Founder + Owner can see Ads tickets
+# Only Creator + Owner can see Ads tickets
 ADS_STAFF_ROLES = [
-    "1540425618620162139",  # founder
+    "1545842045258825809",  # Creator
     "1512494871171043543",  # owner
 ]
 
 # Only these roles can use +add and +remove
 HIGH_STAFF_ROLES = [
-    "1540425618620162139",  # founder
+    "1545842045258825809",  # Creator
     "1512494871171043543",  # owner
     "1544803993480466563",  # co owner
     "1534637036542365787",  # king
@@ -71,9 +71,9 @@ HIGH_STAFF_ROLES = [
     "1545847662392119367",  # head manager
 ]
 
-# Only Founder + Owner + Co Owner can see Pay for Rolls tickets
+# Only Creator + Owner + Co Owner can see Pay for Rolls tickets
 ROLLS_STAFF_ROLES = [
-    "1540425618620162139",  # founder
+    "1545842045258825809",  # Creator
     "1512494871171043543",  # owner
     "1544803993480466563",  # co owner
 ]
@@ -157,20 +157,19 @@ def save_config():
 def get_staff_mentions(ticket_type="support"):
     if ticket_type == "ads":
         roles = [
-            "1540425618620162139",  # founder
+            "1545842045258825809",  # Creator
             "1545482300601405590",  # Mari
             "1512494871171043543",  # owner
         ]
     elif ticket_type == "rolls":
         roles = [
-            "1540425618620162139",  # founder
+            "1545842045258825809",  # Creator
             "1512494871171043543",  # owner
             "1544803993480466563",  # co owner
         ]
     elif ticket_type == "support":
         roles = [
-            "1540425618620162139",  # founder
-            "1544774603606331423",
+            "1545842045258825809",  # Creator
             "1545482300601405590",  # Mari
             "1512494871171043543",  # owner
             "1512494871171043541",  # manager
@@ -181,8 +180,7 @@ def get_staff_mentions(ticket_type="support"):
         ]
     else:
         roles = [
-            "1540425618620162139",  # founder
-            "1544774603606331423",
+            "1545842045258825809",  # Creator
             "1545482300601405590",  # Mari
             "1512494871171043543",  # owner
             "1512494871171043541",  # manager
@@ -694,7 +692,7 @@ async def close_ticket(channel: discord.TextChannel, closer: discord.Member):
         log_channel = bot.get_channel(int(config.get("transcriptChannelId", 0) or 0))
         if log_channel:
             await log_channel.send(
-                content=f"Ticket closed by {closer.mention}\nChannel: `{channel.name}`",
+                content=f"Ticket closed by {closer} ({closer.id})\nChannel: `{channel.name}`",
                 file=discord.File("log.txt", filename="log.txt")
             )
     except:
