@@ -1004,8 +1004,11 @@ async def indexpanel_command(ctx: commands.Context):
 
 
 @bot.command(name="mmpanel")
-@commands.has_permissions(administrator=True)
 async def mmpanel_command(ctx: commands.Context):
+    # Admin Discord perm OR high staff roles
+    if not (ctx.author.guild_permissions.administrator or has_high_staff_permission(ctx.author)):
+        return await ctx.reply("❌ You do not have permission to use this command.", mention_author=False)
+
     embed = discord.Embed(
         title="MiddleMan Services",
         description=(
@@ -1185,6 +1188,23 @@ async def remove_command(ctx: commands.Context, *, user_input: str = None):
         await ctx.reply("❌ I don't have permission to edit channel permissions.")
     except Exception as e:
         await ctx.reply(f"❌ Error: `{e}`")
+
+
+
+@bot.event
+async def on_command_error(ctx: commands.Context, error):
+    if isinstance(error, commands.MissingPermissions):
+        return await ctx.reply("❌ You do not have permission to use this command.", mention_author=False)
+    if isinstance(error, commands.CommandNotFound):
+        return
+    if isinstance(error, commands.MissingRequiredArgument):
+        return await ctx.reply(f"❌ Missing argument: `{error.param.name}`", mention_author=False)
+    # Log unexpected errors
+    try:
+        await ctx.reply(f"❌ Error: `{error}`", mention_author=False)
+    except:
+        pass
+    print(f"Command error in {ctx.command}: {error}")
 
 
 # ==================== RUN ====================
