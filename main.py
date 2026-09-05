@@ -99,7 +99,7 @@ MM_DISPLAY = {
 }
 
 MM_EMOJIS = {
-    "cross": "⬡",
+    "cross": "🟡",
     "og": "🥇",
     "1b": "🥈",
     "250m": "🥉",
@@ -750,7 +750,7 @@ class MiddlemanSelect(Select):
                 label="Cross Trades",
                 description="Cross trade middleman service",
                 value="cross",
-                emoji="⬡"
+                emoji="🟡"
             ),
             discord.SelectOption(
                 label="OG Trades",
@@ -1013,7 +1013,7 @@ async def mmpanel_command(ctx: commands.Context):
         title="MiddleMan Services",
         description=(
             "Click bellow to choose one of these trade services\n\n"
-            "• **Cross Trades** ⬡\n"
+            "• **Cross Trades** 🟡\n"
             "• **OG Trades** 🥇\n"
             "• **1B+ Trades** 🥈\n"
             "• **250M-1B Trades** 🥉\n"
