@@ -77,6 +77,76 @@ ROLLS_STAFF_ROLES = [
     "1544803993480466563",  # co owner
 ]
 
+# ==================== INDEXING SERVICE ====================
+INDEX_CATEGORY_ID = 1545599546342510623
+
+INDEX_ROLES = {
+    "crystal": "1545595662756876338",
+    "phantom": "1545590572293824592",
+    "cyber": "1545590491305877534",
+    "divine": "1545591239599194162",
+    "cursed": "1545590394048225370",
+    "radioactive": "1545590875026104421",
+    "yingyang": "1545591594416345088",
+    "galaxy": "1545590794323370075",
+    "lava": "1545590664652398602",
+    "candy": "1545591008841048065",
+    "rainbow": "1545591478049444021",
+    "diamond": "1545591134456381530",
+    "gold": "1545591381349900368",
+}
+
+INDEX_PRICES = {
+    "crystal": "1x Base Drag (or equivalent value ; collat will be needed)",
+    "phantom": "9 garam (or equivalent value ; collat will be needed)",
+    "cyber": "9 garam (or equivalent value ; collat will be needed)",
+    "divine": "Ask staff for current price (or equivalent value ; collat will be needed)",
+    "cursed": "7+ garams (or equivalent value ; collat will be needed)",
+    "radioactive": "6+ garams (or equivalent value ; collat will be needed)",
+    "yingyang": "5+ garams (or equivalent value ; collat will be needed)",
+    "galaxy": "3+ garams (or equivalent value ; collat will be needed)",
+    "lava": "3+ garams (or equivalent value ; collat will be needed)",
+    "candy": "2+ garams (or equivalent value ; collat will be needed)",
+    "rainbow": "5 garams (or equivalent value ; collat will be needed)",
+    "diamond": "4 garams (or equivalent value ; collat will be needed)",
+    "gold": "3 garams (or equivalent value ; collat will be needed)",
+}
+
+INDEX_DISPLAY = {
+    "crystal": "Crystal Base",
+    "phantom": "Phantom Base",
+    "cyber": "Cyber Base",
+    "divine": "Divine Base",
+    "cursed": "Cursed Base",
+    "radioactive": "Radioactive Base",
+    "yingyang": "YingYang Base",
+    "galaxy": "Galaxy Base",
+    "lava": "Lava Base",
+    "candy": "Candy Base",
+    "rainbow": "Rainbow Base",
+    "diamond": "Diamond Base",
+    "gold": "Gold Base",
+}
+
+INDEX_EMOJIS = {
+    "crystal": "💎",
+    "phantom": "👻",
+    "cyber": "🤖",
+    "divine": "✨",
+    "cursed": "☠️",
+    "radioactive": "☢️",
+    "yingyang": "☯️",
+    "galaxy": "🌌",
+    "lava": "🌋",
+    "candy": "🍬",
+    "rainbow": "🌈",
+    "diamond": "💠",
+    "gold": "🟡",
+}
+
+# All index role IDs for staff permission checks
+ALL_INDEX_ROLES = list(INDEX_ROLES.values())
+
 
 def save_config():
     with open("config.json", "w") as f:
@@ -122,7 +192,7 @@ def get_staff_mentions(ticket_type="support"):
 
 def has_staff_permission(member: discord.Member):
     try:
-        all_roles = ALL_STAFF_ROLES + SUPPORT_ONLY_ROLES + REWARD_STAFF_ROLES + ADS_STAFF_ROLES
+        all_roles = ALL_STAFF_ROLES + SUPPORT_ONLY_ROLES + REWARD_STAFF_ROLES + ADS_STAFF_ROLES + ALL_INDEX_ROLES
         return any(str(role.id) in all_roles for role in member.roles)
     except:
         return False
@@ -231,6 +301,107 @@ class TicketView(View):
     def __init__(self):
         super().__init__(timeout=None)
         self.add_item(TicketSelect())
+
+
+# ==================== INDEX SELECT MENU ====================
+class IndexSelect(Select):
+    def __init__(self):
+        options = [
+            discord.SelectOption(
+                label="Gold Base",
+                description=INDEX_PRICES["gold"],
+                value="gold",
+                emoji="🟡"
+            ),
+            discord.SelectOption(
+                label="Diamond Base",
+                description=INDEX_PRICES["diamond"],
+                value="diamond",
+                emoji="💠"
+            ),
+            discord.SelectOption(
+                label="Rainbow Base",
+                description=INDEX_PRICES["rainbow"],
+                value="rainbow",
+                emoji="🌈"
+            ),
+            discord.SelectOption(
+                label="Galaxy Base",
+                description=INDEX_PRICES["galaxy"],
+                value="galaxy",
+                emoji="🌌"
+            ),
+            discord.SelectOption(
+                label="Candy Base",
+                description=INDEX_PRICES["candy"],
+                value="candy",
+                emoji="🍬"
+            ),
+            discord.SelectOption(
+                label="Lava Base",
+                description=INDEX_PRICES["lava"],
+                value="lava",
+                emoji="🌋"
+            ),
+            discord.SelectOption(
+                label="Radioactive Base",
+                description=INDEX_PRICES["radioactive"],
+                value="radioactive",
+                emoji="☢️"
+            ),
+            discord.SelectOption(
+                label="YingYang Base",
+                description=INDEX_PRICES["yingyang"],
+                value="yingyang",
+                emoji="☯️"
+            ),
+            discord.SelectOption(
+                label="Cursed Base",
+                description=INDEX_PRICES["cursed"],
+                value="cursed",
+                emoji="☠️"
+            ),
+            discord.SelectOption(
+                label="Divine Base",
+                description=INDEX_PRICES["divine"],
+                value="divine",
+                emoji="✨"
+            ),
+            discord.SelectOption(
+                label="Cyber Base",
+                description=INDEX_PRICES["cyber"],
+                value="cyber",
+                emoji="🤖"
+            ),
+            discord.SelectOption(
+                label="Phantom Base",
+                description=INDEX_PRICES["phantom"],
+                value="phantom",
+                emoji="👻"
+            ),
+            discord.SelectOption(
+                label="Crystal Base",
+                description=INDEX_PRICES["crystal"],
+                value="crystal",
+                emoji="💎"
+            ),
+        ]
+        super().__init__(
+            placeholder="Select a base to index...",
+            min_values=1,
+            max_values=1,
+            options=options,
+            custom_id="index_select"
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        await create_index_ticket(interaction, self.values[0])
+
+
+class IndexView(View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(IndexSelect())
 
 
 # ==================== TICKET BUTTONS ====================
@@ -414,6 +585,94 @@ async def create_ticket(interaction: discord.Interaction, ticket_type: str):
     await interaction.response.send_message(f"Ticket created: {channel.mention}", ephemeral=True)
 
 
+# ==================== CREATE INDEX TICKET ====================
+async def create_index_ticket(interaction: discord.Interaction, base_key: str):
+    guild = interaction.guild
+    member = interaction.user
+
+    # Prevent multiple open tickets
+    for channel in guild.text_channels:
+        if channel.topic == f"ticket-{member.id}":
+            return await interaction.response.send_message(
+                f"You already have an open ticket: {channel.mention}", ephemeral=True
+            )
+
+    if base_key not in INDEX_ROLES:
+        return await interaction.response.send_message("Invalid base selected.", ephemeral=True)
+
+    config["ticketCounter"] += 1
+    save_config()
+
+    display_name = INDEX_DISPLAY.get(base_key, base_key.title())
+    price = INDEX_PRICES.get(base_key, "Ask staff")
+    role_id = INDEX_ROLES[base_key]
+    emoji = INDEX_EMOJIS.get(base_key, "📦")
+
+    # Channel name = the index they are wanting
+    channel_name = clean_channel_name(display_name)
+
+    overwrites = {
+        guild.default_role: discord.PermissionOverwrite(view_channel=False),
+        member: discord.PermissionOverwrite(
+            view_channel=True,
+            send_messages=True,
+            attach_files=True,
+            read_message_history=True
+        ),
+        guild.me: discord.PermissionOverwrite(
+            view_channel=True,
+            send_messages=True,
+            manage_channels=True,
+            manage_messages=True
+        )
+    }
+
+    # Allow all staff + the specific index role
+    for role_id_str in ALL_STAFF_ROLES + [role_id]:
+        role = guild.get_role(int(role_id_str))
+        if role:
+            overwrites[role] = discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                attach_files=True,
+                read_message_history=True,
+                manage_messages=True
+            )
+
+    category = guild.get_channel(INDEX_CATEGORY_ID)
+
+    channel = await guild.create_text_channel(
+        name=channel_name,
+        category=category,
+        topic=f"ticket-{member.id}",
+        overwrites=overwrites
+    )
+
+    embed = discord.Embed(
+        title=f"{emoji} Index Request: {display_name}",
+        description=(
+            f"**Ticket opened by {member.mention}**\n\n"
+            f"**Base:** {display_name}\n"
+            f"**Price:** {price}\n\n"
+            "**Index Base Rules**\n"
+            "1. PLEASE HAVE AN EMPTY BASE\n"
+            "2. IF YOU FAIL TO RETURN A BRAINROT THE INDEX WILL BE CANCELED\n"
+            "3. HIGH VALUE BRAINROTS WILL BE GIVEN ONE AT A TIME\n\n"
+            "We only take Garam's+ so please do not waste our time with lowballs.\n\n"
+            "Please wait for the indexer to assist you."
+        ),
+        color=0xED4245
+    )
+
+    await channel.send(
+        content=f"<@&{role_id}>",
+        embed=embed,
+        view=TicketButtons()
+    )
+
+    await interaction.response.send_message(f"Index ticket created: {channel.mention}", ephemeral=True)
+
+
 # ==================== CLOSE TICKET ====================
 async def close_ticket(channel: discord.TextChannel, closer: discord.Member):
     # Generate transcript quickly then delete channel immediately
@@ -463,6 +722,7 @@ async def on_ready():
 
     bot.add_view(TicketView())
     bot.add_view(TicketButtons())
+    bot.add_view(IndexView())
 
 
 @bot.event
@@ -495,6 +755,31 @@ async def panel_command(ctx: commands.Context):
         pass
 
 
+@bot.command(name="indexpanel")
+@commands.has_permissions(administrator=True)
+async def indexpanel_command(ctx: commands.Context):
+    embed = discord.Embed(
+        title="Request a Indexing Service",
+        description=(
+            "Request an indexing service by selecting one of the available bases below.\n\n"
+            "**Index Base Rules**\n"
+            "PLEASE FOLLOW THESE RULES DURING INDEXING\n\n"
+            "1. PLEASE HAVE AN EMPTY BASE\n"
+            "2. IF YOU FAIL TO RETURN A BRAINROT THE INDEX WILL BE CANCELED\n"
+            "3. HIGH VALUE BRAINROTS WILL BE GIVEN ONE AT A TIME\n\n"
+            "PLEASE MAKE A TICKET USING THE SELECT MENU BELOW TO PURCHASE\n\n"
+            "**CHECK PRICES BELOW**\n"
+            "We only take Garam's+ so please do not waste our time with lowballs."
+        ),
+        color=0xED4245
+    )
+    await ctx.send(embed=embed, view=IndexView())
+    try:
+        await ctx.message.delete()
+    except:
+        pass
+
+
 @bot.command(name="commands")
 async def commands_command(ctx: commands.Context):
     if not has_staff_permission(ctx.author):
@@ -507,6 +792,7 @@ async def commands_command(ctx: commands.Context):
         timestamp=datetime.utcnow()
     )
     embed.add_field(name="`+panel`", value="Sends the ticket panel\n*(Admin only)*", inline=False)
+    embed.add_field(name="`+indexpanel`", value="Sends the indexing service panel\n*(Admin only)*", inline=False)
     embed.add_field(name="`+commands`", value="Shows this help menu", inline=False)
     embed.add_field(name="`+rename <name>`", value="Renames the current ticket", inline=False)
     embed.add_field(name="`+claim`", value="Claims the current ticket", inline=False)
