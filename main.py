@@ -21,12 +21,13 @@ bot = commands.Bot(command_prefix="+", intents=intents)
 # All roles that can see Support + Scammer tickets
 ALL_STAFF_ROLES = [
     "1540425618620162139",  # founder
-    "1545482300601405590",  # Cutie
+    "1545482300601405590",  # Mari
     "1512494871171043543",  # owners
     "1544803993480466563",  # co owners
     "1534637036542365787",  # king
     "1543925240705585284",  # overlord
     "1512494871171043541",  # manager
+    "1545847662392119367",  # head manager
     "1512494871171043540",  # Administrator
     "1543926509520293908",  # head staff
     "1540434933166776400",  # senior mod
@@ -44,7 +45,7 @@ SUPPORT_ONLY_ROLES = [
 # Only Manager and above (excluding Admin + Head Staff) can see Reward tickets
 REWARD_STAFF_ROLES = [
     "1540425618620162139",  # founder
-    "1545482300601405590",  # Cutie
+    "1545482300601405590",  # Mari
     "1512494871171043543",  # owners
     "1544803993480466563",  # co owners
     "1534637036542365787",  # king
@@ -67,7 +68,7 @@ HIGH_STAFF_ROLES = [
     "1543925240705585284",  # overlord
     "1512494871171043541",  # manager
     "1512494871171043540",  # Administrator
-    "1543926509520293908",  # head staff
+    "1545847662392119367",  # head manager
 ]
 
 # Only Founder + Owner + Co Owner can see Pay for Rolls tickets
@@ -157,7 +158,7 @@ def get_staff_mentions(ticket_type="support"):
     if ticket_type == "ads":
         roles = [
             "1540425618620162139",  # founder
-            "1545482300601405590",  # Cutie
+            "1545482300601405590",  # Mari
             "1512494871171043543",  # owner
         ]
     elif ticket_type == "rolls":
@@ -170,9 +171,10 @@ def get_staff_mentions(ticket_type="support"):
         roles = [
             "1540425618620162139",  # founder
             "1544774603606331423",
-            "1545482300601405590",  # Cutie
+            "1545482300601405590",  # Mari
             "1512494871171043543",  # owner
             "1512494871171043541",  # manager
+            "1545847662392119367",  # head manager
             "1544803993480466563",  # co owner
             "1543925240705585284",  # overlord
             "1545140559365283972",  # extra support ping
@@ -181,9 +183,10 @@ def get_staff_mentions(ticket_type="support"):
         roles = [
             "1540425618620162139",  # founder
             "1544774603606331423",
-            "1545482300601405590",  # Cutie
+            "1545482300601405590",  # Mari
             "1512494871171043543",  # owner
             "1512494871171043541",  # manager
+            "1545847662392119367",  # head manager
             "1544803993480466563",  # co owner
             "1543925240705585284",  # overlord
         ]
