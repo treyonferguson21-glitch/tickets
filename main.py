@@ -78,6 +78,36 @@ ROLLS_STAFF_ROLES = [
     "1544803993480466563",  # co owner
 ]
 
+
+# ==================== MIDDLEMAN SERVICE ====================
+MM_CATEGORY_ID = 1545891563903910020  # where tickets go
+
+MM_ROLES = {
+    "cross": "1545889601166778468",      # Cross trade
+    "og": "1545889664249110569",         # OG Middleman
+    "1b": "1544463220377526383",         # 1B+ middleman
+    "250m": "1544463037266657391",       # 250M-1B / 500m middleman
+    "0-250m": "1544462860359442442",     # 0-250M middleman
+}
+
+MM_DISPLAY = {
+    "cross": "Cross Trade",
+    "og": "OG Trade",
+    "1b": "1B+ Trades",
+    "250m": "250M-1B Trades",
+    "0-250m": "0-250M Trades",
+}
+
+MM_EMOJIS = {
+    "cross": "⬡",
+    "og": "🥇",
+    "1b": "🥈",
+    "250m": "🥉",
+    "0-250m": "✅",
+}
+
+ALL_MM_ROLES = list(MM_ROLES.values())
+
 # ==================== INDEXING SERVICE ====================
 INDEX_CATEGORY_ID = 1545599546342510623
 
@@ -193,7 +223,7 @@ def get_staff_mentions(ticket_type="support"):
 
 def has_staff_permission(member: discord.Member):
     try:
-        all_roles = ALL_STAFF_ROLES + SUPPORT_ONLY_ROLES + REWARD_STAFF_ROLES + ADS_STAFF_ROLES + ALL_INDEX_ROLES
+        all_roles = ALL_STAFF_ROLES + SUPPORT_ONLY_ROLES + REWARD_STAFF_ROLES + ADS_STAFF_ROLES + ALL_INDEX_ROLES + ALL_MM_ROLES
         return any(str(role.id) in all_roles for role in member.roles)
     except:
         return False
@@ -674,6 +704,182 @@ async def create_index_ticket(interaction: discord.Interaction, base_key: str):
     await interaction.response.send_message(f"Index ticket created: {channel.mention}", ephemeral=True)
 
 
+
+# ==================== MIDDLEMAN SELECT + MODAL ====================
+class MiddlemanModal(discord.ui.Modal, title="MiddleMan Request"):
+    def __init__(self, trade_type: str):
+        super().__init__()
+        self.trade_type = trade_type
+
+        self.trade_with = discord.ui.TextInput(
+            label="Who is the trade with?",
+            placeholder="Ex: @mari",
+            required=True,
+            max_length=100
+        )
+        self.trade_details = discord.ui.TextInput(
+            label="What is the trade?",
+            placeholder="Ex: Dragon for garamas",
+            required=True,
+            max_length=200
+        )
+        self.tip = discord.ui.TextInput(
+            label="What is the tip?",
+            placeholder="Please tip 10% of the trade or it might get closed.",
+            required=True,
+            max_length=100
+        )
+        self.add_item(self.trade_with)
+        self.add_item(self.trade_details)
+        self.add_item(self.tip)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await create_middleman_ticket(
+            interaction,
+            self.trade_type,
+            self.trade_with.value,
+            self.trade_details.value,
+            self.tip.value
+        )
+
+
+class MiddlemanSelect(Select):
+    def __init__(self):
+        options = [
+            discord.SelectOption(
+                label="Cross Trades",
+                description="Cross trade middleman service",
+                value="cross",
+                emoji="⬡"
+            ),
+            discord.SelectOption(
+                label="OG Trades",
+                description="OG trade middleman service",
+                value="og",
+                emoji="🥇"
+            ),
+            discord.SelectOption(
+                label="1B+ Trades",
+                description="1B+ value middleman service",
+                value="1b",
+                emoji="🥈"
+            ),
+            discord.SelectOption(
+                label="250M-1B Trades",
+                description="250M to 1B middleman service",
+                value="250m",
+                emoji="🥉"
+            ),
+            discord.SelectOption(
+                label="0-250M Trades",
+                description="0 to 250M middleman service",
+                value="0-250m",
+                emoji="✅"
+            ),
+        ]
+        super().__init__(
+            placeholder="Select an option",
+            min_values=1,
+            max_values=1,
+            options=options,
+            custom_id="middleman_select"
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.send_modal(MiddlemanModal(self.values[0]))
+
+
+class MiddlemanView(View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(MiddlemanSelect())
+
+
+async def create_middleman_ticket(interaction: discord.Interaction, trade_type: str, trade_with: str, trade_details: str, tip: str):
+    guild = interaction.guild
+    member = interaction.user
+
+    # Prevent multiple open tickets
+    for channel in guild.text_channels:
+        if channel.topic == f"ticket-{member.id}":
+            return await interaction.response.send_message(
+                f"You already have an open ticket: {channel.mention}", ephemeral=True
+            )
+
+    if trade_type not in MM_ROLES:
+        return await interaction.response.send_message("Invalid trade type selected.", ephemeral=True)
+
+    config["ticketCounter"] += 1
+    save_config()
+
+    display_name = MM_DISPLAY.get(trade_type, trade_type)
+    role_id = MM_ROLES[trade_type]
+    emoji = MM_EMOJIS.get(trade_type, "🤝")
+
+    # Channel name = the option they picked
+    channel_name = clean_channel_name(display_name)
+
+    overwrites = {
+        guild.default_role: discord.PermissionOverwrite(view_channel=False),
+        member: discord.PermissionOverwrite(
+            view_channel=True,
+            send_messages=True,
+            attach_files=True,
+            read_message_history=True
+        ),
+        guild.me: discord.PermissionOverwrite(
+            view_channel=True,
+            send_messages=True,
+            manage_channels=True,
+            manage_messages=True
+        )
+    }
+
+    # Allow all staff + only the specific middleman role for this ticket type
+    for role_id_str in ALL_STAFF_ROLES + [role_id]:
+        role = guild.get_role(int(role_id_str))
+        if role:
+            overwrites[role] = discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                attach_files=True,
+                read_message_history=True,
+                manage_messages=True
+            )
+
+    category = guild.get_channel(MM_CATEGORY_ID)
+
+    channel = await guild.create_text_channel(
+        name=channel_name,
+        category=category,
+        topic=f"ticket-{member.id}",
+        overwrites=overwrites
+    )
+
+    embed = discord.Embed(
+        title=f"{emoji} MiddleMan Request: {display_name}",
+        description=(
+            f"**Ticket opened by {member.mention}**\n\n"
+            f"**Service:** {display_name}\n"
+            f"**Trade with:** {trade_with}\n"
+            f"**Trade:** {trade_details}\n"
+            f"**Tip:** {tip}\n\n"
+            "A middleman will assist you shortly.\n"
+            "Please wait and do not ping staff repeatedly."
+        ),
+        color=0xED4245
+    )
+
+    # Only ping the specific middleman role for this ticket type
+    await channel.send(
+        content=f"<@&{role_id}>",
+        embed=embed,
+        view=TicketButtons()
+    )
+
+    await interaction.response.send_message(f"MiddleMan ticket created: {channel.mention}", ephemeral=True)
+
+
 # ==================== CLOSE TICKET ====================
 async def close_ticket(channel: discord.TextChannel, closer: discord.Member):
     # Generate transcript quickly then delete channel immediately
@@ -724,6 +930,7 @@ async def on_ready():
     bot.add_view(TicketView())
     bot.add_view(TicketButtons())
     bot.add_view(IndexView())
+    bot.add_view(MiddlemanView())
 
 
 @bot.event
@@ -795,6 +1002,30 @@ async def indexpanel_command(ctx: commands.Context):
         pass
 
 
+
+@bot.command(name="mmpanel")
+@commands.has_permissions(administrator=True)
+async def mmpanel_command(ctx: commands.Context):
+    embed = discord.Embed(
+        title="MiddleMan Services",
+        description=(
+            "Click bellow to choose one of these trade services\n\n"
+            "• **Cross Trades** ⬡\n"
+            "• **OG Trades** 🥇\n"
+            "• **1B+ Trades** 🥈\n"
+            "• **250M-1B Trades** 🥉\n"
+            "• **0-250M Trades** ✅\n\n"
+            "*Powered by Ticket King*"
+        ),
+        color=0xED4245
+    )
+    await ctx.send(embed=embed, view=MiddlemanView())
+    try:
+        await ctx.message.delete()
+    except:
+        pass
+
+
 @bot.command(name="commands")
 async def commands_command(ctx: commands.Context):
     if not has_staff_permission(ctx.author):
@@ -808,6 +1039,7 @@ async def commands_command(ctx: commands.Context):
     )
     embed.add_field(name="`+panel`", value="Sends the ticket panel\n*(Admin only)*", inline=False)
     embed.add_field(name="`+indexpanel`", value="Sends the indexing service panel\n*(Admin only)*", inline=False)
+    embed.add_field(name="`+mmpanel`", value="Sends the MiddleMan services panel\n*(Admin only)*", inline=False)
     embed.add_field(name="`+commands`", value="Shows this help menu", inline=False)
     embed.add_field(name="`+rename <name>`", value="Renames the current ticket", inline=False)
     embed.add_field(name="`+claim`", value="Claims the current ticket", inline=False)
