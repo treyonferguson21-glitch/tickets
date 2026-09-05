@@ -758,9 +758,6 @@ async def panel_command(ctx: commands.Context):
 @bot.command(name="indexpanel")
 @commands.has_permissions(administrator=True)
 async def indexpanel_command(ctx: commands.Context):
-    # Real role pings (these will actually notify the roles)
-    role_pings = " ".join([f"<@&{rid}>" for rid in INDEX_ROLES.values()])
-
     embed = discord.Embed(
         title="Request a Indexing Service",
         description=(
@@ -790,7 +787,7 @@ async def indexpanel_command(ctx: commands.Context):
         ),
         color=0xED4245
     )
-    await ctx.send(content=role_pings, embed=embed, view=IndexView())
+    await ctx.send(embed=embed, view=IndexView())
     try:
         await ctx.message.delete()
     except:
