@@ -758,10 +758,27 @@ async def panel_command(ctx: commands.Context):
 @bot.command(name="indexpanel")
 @commands.has_permissions(administrator=True)
 async def indexpanel_command(ctx: commands.Context):
+    # Real role pings (these will actually notify the roles)
+    role_pings = " ".join([f"<@&{rid}>" for rid in INDEX_ROLES.values()])
+
     embed = discord.Embed(
         title="Request a Indexing Service",
         description=(
             "Request an indexing service by selecting one of the available bases below.\n\n"
+            f"🟡 **Gold Base** — <@&{INDEX_ROLES['gold']}>\n"
+            f"💠 **Diamond Base** — <@&{INDEX_ROLES['diamond']}>\n"
+            f"🌈 **Rainbow Base** — <@&{INDEX_ROLES['rainbow']}>\n"
+            f"🌌 **Galaxy Base** — <@&{INDEX_ROLES['galaxy']}>\n"
+            f"🍬 **Candy Base** — <@&{INDEX_ROLES['candy']}>\n"
+            f"🌋 **Lava Base** — <@&{INDEX_ROLES['lava']}>\n"
+            f"☢️ **Radioactive Base** — <@&{INDEX_ROLES['radioactive']}>\n"
+            f"☯️ **YingYang Base** — <@&{INDEX_ROLES['yingyang']}>\n"
+            f"☠️ **Cursed Base** — <@&{INDEX_ROLES['cursed']}>\n"
+            f"✨ **Divine Base** — <@&{INDEX_ROLES['divine']}>\n"
+            f"🤖 **Cyber Base** — <@&{INDEX_ROLES['cyber']}>\n"
+            f"👻 **Phantom Base** — <@&{INDEX_ROLES['phantom']}>\n"
+            f"💎 **Crystal Base** — <@&{INDEX_ROLES['crystal']}>\n\n"
+            "----------------------------------------\n"
             "**Index Base Rules**\n"
             "PLEASE FOLLOW THESE RULES DURING INDEXING\n\n"
             "1. PLEASE HAVE AN EMPTY BASE\n"
@@ -773,7 +790,7 @@ async def indexpanel_command(ctx: commands.Context):
         ),
         color=0xED4245
     )
-    await ctx.send(embed=embed, view=IndexView())
+    await ctx.send(content=role_pings, embed=embed, view=IndexView())
     try:
         await ctx.message.delete()
     except:
