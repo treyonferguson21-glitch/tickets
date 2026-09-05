@@ -62,6 +62,7 @@ ADS_STAFF_ROLES = [
 # Only these roles can use +add and +remove
 HIGH_STAFF_ROLES = [
     "1545842045258825809",  # Creator
+    "1545482300601405590",  # Mari
     "1512494871171043543",  # owner
     "1544803993480466563",  # co owner
     "1534637036542365787",  # king
@@ -69,6 +70,7 @@ HIGH_STAFF_ROLES = [
     "1512494871171043541",  # manager
     "1512494871171043540",  # Administrator
     "1545847662392119367",  # head manager
+    "1543926509520293908",  # head staff
 ]
 
 # Only Creator + Owner + Co Owner can see Pay for Rolls tickets
@@ -107,6 +109,22 @@ MM_EMOJIS = {
 }
 
 ALL_MM_ROLES = list(MM_ROLES.values())
+
+
+# ==================== STAFF / RECRUITMENT PANEL ====================
+STAFF_CATEGORY_IDS = {
+    "recruitment": 1545919848490733718,    # MOD / staff application
+    "payrolls": 1545919791670370475,       # Pay for rolls
+    "indexprovider": 1545919725228400800,  # Indexers application
+    "mmapplication": 1545919661584158910,  # MM application
+}
+
+STAFF_PANEL_ROLES = [
+    "1545842045258825809",  # Creator
+    "1512494871171043543",  # owner
+    "1544803993480466563",  # co owner
+    "1543925240705585284",  # overlord
+]
 
 # ==================== INDEXING SERVICE ====================
 INDEX_CATEGORY_ID = 1545599546342510623
@@ -463,7 +481,12 @@ class TicketButtons(View):
             return await interaction.response.send_message("Only staff or the ticket owner can close tickets.", ephemeral=True)
 
         await interaction.response.defer()
-        await close_ticket(interaction.channel, interaction.user)
+        deleted = await close_ticket(interaction.channel, interaction.user)
+        if not deleted:
+            try:
+                await interaction.followup.send("❌ Could not delete this channel. Make sure the bot has **Manage Channels** in this category.", ephemeral=True)
+            except:
+                pass
 
 
 # ==================== CREATE TICKET ====================
@@ -880,9 +903,215 @@ async def create_middleman_ticket(interaction: discord.Interaction, trade_type: 
     await interaction.response.send_message(f"MiddleMan ticket created: {channel.mention}", ephemeral=True)
 
 
+
+# ==================== STAFF PANEL SELECT ====================
+class StaffPanelSelect(Select):
+    def __init__(self):
+        options = [
+            discord.SelectOption(
+                label="Staff Application",
+                description="Apply for a staff position on the team",
+                value="recruitment",
+                emoji="📝"
+            ),
+            discord.SelectOption(
+                label="Pay for Rolls",
+                description="Purchase secure rolls for staff",
+                value="payrolls",
+                emoji="🎟️"
+            ),
+            discord.SelectOption(
+                label="Index Provider",
+                description="Apply to become an index provider",
+                value="indexprovider",
+                emoji="📦"
+            ),
+            discord.SelectOption(
+                label="Middleman Application",
+                description="Apply to become a middleman",
+                value="mmapplication",
+                emoji="🤝"
+            ),
+        ]
+        super().__init__(
+            placeholder="Choose a staff option...",
+            min_values=1,
+            max_values=1,
+            options=options,
+            custom_id="staff_panel_select"
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        await create_staff_ticket(interaction, self.values[0])
+
+
+class StaffPanelView(View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(StaffPanelSelect())
+
+
+async def create_staff_ticket(interaction: discord.Interaction, ticket_type: str):
+    guild = interaction.guild
+    member = interaction.user
+
+    for channel in guild.text_channels:
+        if channel.topic == f"ticket-{member.id}":
+            return await interaction.response.send_message(
+                f"You already have an open ticket: {channel.mention}", ephemeral=True
+            )
+
+    category_id = STAFF_CATEGORY_IDS.get(ticket_type)
+    if not category_id:
+        return await interaction.response.send_message(
+            "Staff category is not set for this option. Please contact an administrator.", ephemeral=True
+        )
+
+    config["ticketCounter"] += 1
+    save_config()
+
+    # Channel name = username (same as other tickets)
+    channel_name = clean_channel_name(member.name)
+
+    overwrites = {
+        guild.default_role: discord.PermissionOverwrite(view_channel=False),
+        member: discord.PermissionOverwrite(
+            view_channel=True,
+            send_messages=True,
+            attach_files=True,
+            read_message_history=True
+        ),
+        guild.me: discord.PermissionOverwrite(
+            view_channel=True,
+            send_messages=True,
+            manage_channels=True,
+            manage_messages=True
+        )
+    }
+
+    for role_id_str in STAFF_PANEL_ROLES:
+        role = guild.get_role(int(role_id_str))
+        if role:
+            overwrites[role] = discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                attach_files=True,
+                read_message_history=True,
+                manage_messages=True
+            )
+
+    category = guild.get_channel(category_id)
+    channel = await guild.create_text_channel(
+        name=channel_name,
+        category=category,
+        topic=f"ticket-{member.id}",
+        overwrites=overwrites
+    )
+
+    # Pings:
+    # - Pay for Rolls: Creator + Owner only
+    # - Other staff tickets: Creator, Owner, Co Owner, Overlord
+    if ticket_type == "payrolls":
+        ping = "<@&1545842045258825809> <@&1512494871171043543>"  # Creator + Owner
+    else:
+        ping = " ".join([
+            "<@&1545842045258825809>",  # Creator
+            "<@&1512494871171043543>",  # Owner
+            "<@&1544803993480466563>",  # Co Owner
+            "<@&1543925240705585284>",  # Overlord
+        ])
+
+    if ticket_type == "recruitment":
+        embed = discord.Embed(
+            title="📝 Staff Application",
+            description=(
+                f"Welcome {member.mention}! Thanks for applying to join the team.\n\n"
+                "Please answer **every question** below honestly and professionally. "
+                "A recruiter will review your application shortly.\n\n"
+                "**Application Form**\n"
+                "```\n"
+                "1. Discord Username:\n"
+                "2. Age:\n"
+                "3. Are you fluent in English?\n"
+                "4. How many days per week are you active?\n"
+                "5. How many hours per day are you usually online?\n"
+                "6. How would you handle a toxic member breaking the rules?\n"
+                "7. Do you have any previous moderation or staff experience?\n"
+                "   (If yes, please explain)\n"
+                "8. Why do you want to become a staff member?\n"
+                "9. Anything else you would like us to know?\n"
+                "```\n\n"
+                "Copy the form, fill it out, and send it in this ticket."
+            ),
+            color=0x000000
+        )
+        embed.set_footer(text="Staff Recruitment")
+    elif ticket_type == "payrolls":
+        embed = discord.Embed(
+            title="🎟️ Pay for Rolls",
+            description=(
+                f"Ticket opened by {member.mention}\n\n"
+                "**Staff Pay Rates**\n"
+                "```\n"
+                "Test Mod          — 2 Garams\n"
+                "Moderator         — 3 Garams\n"
+                "Senior Moderator  — 4 Garams\n"
+                "Head Staff        — 5 Garams\n"
+                "Admin             — 7 Garams OR 1 Colored Garam\n"
+                "Manager           — 2 Colored Garams\n"
+                "Head Manager      — 3 Colored Garams\n"
+                "```\n\n"
+                "Tell us which role you are paying for and what you are offering. "
+                "A Creator / Owner will assist you shortly."
+            ),
+            color=0x000000
+        )
+        embed.set_footer(text="Pay for Rolls")
+    elif ticket_type == "indexprovider":
+        embed = discord.Embed(
+            title="📦 Index Provider Application",
+            description=(
+                f"Welcome {member.mention}!\n\n"
+                "Thanks for your interest in becoming an **Index Provider**.\n\n"
+                "**Payment & Collat:** 1+ Drag\n\n"
+                "Please tell us:\n"
+                "• Why you want to be an index provider\n"
+                "• How active you are\n"
+                "• Any relevant experience\n\n"
+                "Staff will review your request soon."
+            ),
+            color=0x000000
+        )
+        embed.set_footer(text="Index Provider")
+    else:  # mmapplication
+        embed = discord.Embed(
+            title="🤝 Middleman Application",
+            description=(
+                f"Welcome {member.mention}!\n\n"
+                "Thanks for applying to become a **Middleman**.\n\n"
+                "**Payment & Collat:** 1+ Drag\n\n"
+                "Please tell us:\n"
+                "• Why you want to middleman\n"
+                "• How often you can be online\n"
+                "• Any past middleman experience\n\n"
+                "Staff will get back to you shortly."
+            ),
+            color=0x000000
+        )
+        embed.set_footer(text="Middleman Application")
+
+    await channel.send(content=ping, embed=embed, view=TicketButtons())
+    await interaction.response.send_message(f"Ticket created: {channel.mention}", ephemeral=True)
+
+
 # ==================== CLOSE TICKET ====================
-async def close_ticket(channel: discord.TextChannel, closer: discord.Member):
-    # Generate transcript quickly then delete channel immediately
+async def close_ticket(channel: discord.TextChannel, closer: discord.Member) -> bool:
+    """Close ticket, send transcript, delete channel. Returns True if channel was deleted."""
+    channel_name = channel.name
+    channel_id = channel.id
+    topic = channel.topic  # save before delete
+
+    # Snapshot messages before delete
     try:
         messages = [msg async for msg in channel.history(limit=50, oldest_first=True)]
         transcript = "---- TICKET LOGS ----\n\n"
@@ -892,29 +1121,50 @@ async def close_ticket(channel: discord.TextChannel, closer: discord.Member):
             if msg.embeds:
                 transcript += f"<EMBED {msg.embeds[0].title or 'Embed'}>\n"
 
-        with open("log.txt", "w", encoding="utf-8") as f:
+        log_path = f"log_{channel_id}.txt"
+        with open(log_path, "w", encoding="utf-8") as f:
             f.write(transcript)
 
         log_channel = bot.get_channel(int(config.get("transcriptChannelId", 0) or 0))
         if log_channel:
-            await log_channel.send(
-                content=f"Ticket closed by {closer} ({closer.id})\nChannel: `{channel.name}`",
-                file=discord.File("log.txt", filename="log.txt")
-            )
-    except:
-        pass
+            try:
+                await log_channel.send(
+                    content=f"Ticket closed by {closer} ({closer.id})\nChannel: `{channel_name}`",
+                    file=discord.File(log_path, filename="log.txt")
+                )
+            except Exception as e:
+                print(f"Log send error: {e}")
 
-    # Delete channel immediately
+        if os.path.exists(log_path):
+            try:
+                os.remove(log_path)
+            except:
+                pass
+    except Exception as e:
+        print(f"Transcript error: {e}")
+
+    # Delete channel once — do not recreate
     try:
-        await channel.delete()
-    except:
-        pass
-
-    if os.path.exists("log.txt"):
+        await channel.delete(reason=f"Ticket closed by {closer}")
+        print(f"Deleted ticket channel: {channel_name} ({channel_id})")
+        return True
+    except discord.NotFound:
+        return True
+    except discord.Forbidden:
+        print(f"Missing Manage Channels permission to delete {channel_name} ({channel_id})")
+        return False
+    except Exception as e:
+        print(f"Delete failed for {channel_name}: {e}")
+        # Last try
         try:
-            os.remove("log.txt")
+            await asyncio.sleep(1)
+            ch = closer.guild.get_channel(channel_id) if closer.guild else None
+            if ch:
+                await ch.delete(reason=f"Ticket closed by {closer} (retry)")
+                return True
         except:
             pass
+        return False
 
 
 # ==================== EVENTS ====================
@@ -931,6 +1181,7 @@ async def on_ready():
     bot.add_view(TicketButtons())
     bot.add_view(IndexView())
     bot.add_view(MiddlemanView())
+    bot.add_view(StaffPanelView())
 
 
 @bot.event
@@ -1003,6 +1254,33 @@ async def indexpanel_command(ctx: commands.Context):
 
 
 
+
+
+@bot.command(name="staffpanel")
+@commands.has_permissions(administrator=True)
+async def staffpanel_command(ctx: commands.Context):
+
+    embed = discord.Embed(
+        title="Staff & Team Opportunities",
+        description=(
+            "Interested in joining the team or unlocking staff services?\n"
+            "Pick an option below to open a private ticket.\n\n"
+            "📝 **Staff Application** — Apply for a staff position\n"
+            "🎟️ **Pay for Rolls** — Purchase secure staff rolls\n"
+            "📦 **Index Provider** — Apply to become an index provider\n"
+            "🤝 **Middleman Application** — Apply to become a middleman\n\n"
+            "Our team will review every request carefully."
+        ),
+        color=0x000000
+    )
+    embed.set_footer(text="Select an option to get started")
+    await ctx.send(embed=embed, view=StaffPanelView())
+    try:
+        await ctx.message.delete()
+    except:
+        pass
+
+
 @bot.command(name="mmpanel")
 async def mmpanel_command(ctx: commands.Context):
     # Admin Discord perm OR high staff roles
@@ -1043,6 +1321,7 @@ async def commands_command(ctx: commands.Context):
     embed.add_field(name="`+panel`", value="Sends the ticket panel\n*(Admin only)*", inline=False)
     embed.add_field(name="`+indexpanel`", value="Sends the indexing service panel\n*(Admin only)*", inline=False)
     embed.add_field(name="`+mmpanel`", value="Sends the MiddleMan services panel\n*(Admin only)*", inline=False)
+    embed.add_field(name="`+staffpanel`", value="Sends the staff recruitment panel\n*(Admin only)*", inline=False)
     embed.add_field(name="`+commands`", value="Shows this help menu", inline=False)
     embed.add_field(name="`+rename <name>`", value="Renames the current ticket", inline=False)
     embed.add_field(name="`+claim`", value="Claims the current ticket", inline=False)
@@ -1125,7 +1404,12 @@ async def close_command(ctx: commands.Context):
     if not (is_ticket_opener(ctx.channel, ctx.author) or has_staff_permission(ctx.author)):
         return await ctx.reply("❌ Only staff or the ticket owner can close tickets.", mention_author=False)
 
-    await close_ticket(ctx.channel, ctx.author)
+    deleted = await close_ticket(ctx.channel, ctx.author)
+    if not deleted:
+        try:
+            await ctx.reply("❌ Could not delete this channel. Make sure the bot has **Manage Channels** in this category.")
+        except:
+            pass
 
 
 @bot.command(name="add")
