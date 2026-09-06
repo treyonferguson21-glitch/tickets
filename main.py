@@ -827,7 +827,7 @@ async def indexpanel_command(ctx: commands.Context):
 async def gamepanel_command(ctx: commands.Context):
     """Posts the reaction roles panel for game access"""
     embed = discord.Embed(
-        title="🎮 ROBLOX HUB • GAME ROLES :",
+        title="🎮 LEOS MIDDLEMAN ROLES :",
         description=(
             "Take access to your favorite games by clicking on the corresponding reaction below this message.\n\n"
             "**Games available :**\n\n"
