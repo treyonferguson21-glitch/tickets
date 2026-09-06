@@ -15,19 +15,19 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 intents.guilds = True
+intents.reactions = True  # Needed for reaction roles
 
 bot = commands.Bot(command_prefix="+", intents=intents)
 
 # All roles that can see Support + Scammer tickets
 ALL_STAFF_ROLES = [
-    "1545842045258825809",  # Creator
-    "1545482300601405590",  # Mari
+    "1540425618620162139",  # founder
+    "1545482300601405590",  # Cutie
     "1512494871171043543",  # owners
     "1544803993480466563",  # co owners
     "1534637036542365787",  # king
-    "1543925240705585284",  # overlord
+    "1546192012435390515",  # community manager
     "1512494871171043541",  # manager
-    "1545847662392119367",  # head manager
     "1512494871171043540",  # Administrator
     "1543926509520293908",  # head staff
     "1540434933166776400",  # senior mod
@@ -44,87 +44,55 @@ SUPPORT_ONLY_ROLES = [
 
 # Only Manager and above (excluding Admin + Head Staff) can see Reward tickets
 REWARD_STAFF_ROLES = [
-    "1545842045258825809",  # Creator
-    "1545482300601405590",  # Mari
+    "1540425618620162139",  # founder
+    "1545482300601405590",  # Cutie
     "1512494871171043543",  # owners
     "1544803993480466563",  # co owners
     "1534637036542365787",  # king
-    "1543925240705585284",  # overlord
+    "1546192012435390515",  # community manager
     "1512494871171043541",  # manager
 ]
 
-# Only Creator + Owner can see Ads tickets
+# Only Founder + Owner can see Ads tickets
 ADS_STAFF_ROLES = [
-    "1545842045258825809",  # Creator
+    "1540425618620162139",  # founder
     "1512494871171043543",  # owner
 ]
 
 # Only these roles can use +add and +remove
 HIGH_STAFF_ROLES = [
-    "1545842045258825809",  # Creator
-    "1545482300601405590",  # Mari
+    "1540425618620162139",  # founder
     "1512494871171043543",  # owner
     "1544803993480466563",  # co owner
     "1534637036542365787",  # king
-    "1543925240705585284",  # overlord
+    "1546192012435390515",  # community manager
     "1512494871171043541",  # manager
     "1512494871171043540",  # Administrator
-    "1545847662392119367",  # head manager
     "1543926509520293908",  # head staff
 ]
 
-# Only Creator + Owner + Co Owner can see Pay for Rolls tickets
+# Only Founder + Owner + Co Owner can see Pay for Rolls tickets
 ROLLS_STAFF_ROLES = [
-    "1545842045258825809",  # Creator
+    "1540425618620162139",  # founder
     "1512494871171043543",  # owner
     "1544803993480466563",  # co owner
 ]
 
-
-# ==================== MIDDLEMAN SERVICE ====================
-MM_CATEGORY_ID = 1545891563903910020  # where tickets go
-
-MM_ROLES = {
-    "cross": "1545889601166778468",      # Cross trade
-    "og": "1545889664249110569",         # OG Middleman
-    "1b": "1544463220377526383",         # 1B+ middleman
-    "250m": "1544463037266657391",       # 250M-1B / 500m middleman
-    "0-250m": "1544462860359442442",     # 0-250M middleman
+# ==================== REACTION ROLES (GAME ROLES) ====================
+# Emoji → Role ID mapping (only these 4 games)
+GAME_ROLES = {
+    "🧠": 1512494871045210206,   # SAB
+    "🍉": 1512494871045210207,   # Blox Fruits
+    "🌱": 1512494871045210205,   # Gag2
+    "🎮": 1545889711116124222,   # Other Games
 }
 
-MM_DISPLAY = {
-    "cross": "Cross Trade",
-    "og": "OG Trade",
-    "1b": "1B+ Trades",
-    "250m": "250M-1B Trades",
-    "0-250m": "0-250M Trades",
+GAME_ROLE_NAMES = {
+    "🧠": "SAB",
+    "🍉": "BLOX FRUITS",
+    "🌱": "GAG2",
+    "🎮": "OTHER GAMES",
 }
-
-MM_EMOJIS = {
-    "cross": "🟡",
-    "og": "🥇",
-    "1b": "🥈",
-    "250m": "🥉",
-    "0-250m": "✅",
-}
-
-ALL_MM_ROLES = list(MM_ROLES.values())
-
-
-# ==================== STAFF / RECRUITMENT PANEL ====================
-STAFF_CATEGORY_IDS = {
-    "recruitment": 1545919848490733718,    # MOD / staff application
-    "payrolls": 1545919791670370475,       # Pay for rolls
-    "indexprovider": 1545919725228400800,  # Indexers application
-    "mmapplication": 1545919661584158910,  # MM application
-}
-
-STAFF_PANEL_ROLES = [
-    "1545842045258825809",  # Creator
-    "1512494871171043543",  # owner
-    "1544803993480466563",  # co owner
-    "1543925240705585284",  # overlord
-]
 
 # ==================== INDEXING SERVICE ====================
 INDEX_CATEGORY_ID = 1545599546342510623
@@ -196,56 +164,52 @@ INDEX_EMOJIS = {
 # All index role IDs for staff permission checks
 ALL_INDEX_ROLES = list(INDEX_ROLES.values())
 
-
 def save_config():
     with open("config.json", "w") as f:
         json.dump(config, f, indent=4)
 
-
 def get_staff_mentions(ticket_type="support"):
     if ticket_type == "ads":
         roles = [
-            "1545842045258825809",  # Creator
-            "1545482300601405590",  # Mari
+            "1540425618620162139",  # founder
+            "1545482300601405590",  # Cutie
             "1512494871171043543",  # owner
         ]
     elif ticket_type == "rolls":
         roles = [
-            "1545842045258825809",  # Creator
+            "1540425618620162139",  # founder
             "1512494871171043543",  # owner
             "1544803993480466563",  # co owner
         ]
     elif ticket_type == "support":
         roles = [
-            "1545842045258825809",  # Creator
-            "1545482300601405590",  # Mari
+            "1540425618620162139",  # founder
+            "1544774603606331423",
+            "1545482300601405590",  # Cutie
             "1512494871171043543",  # owner
             "1512494871171043541",  # manager
-            "1545847662392119367",  # head manager
             "1544803993480466563",  # co owner
-            "1543925240705585284",  # overlord
+            "1546192012435390515",  # community manager
             "1545140559365283972",  # extra support ping
         ]
     else:
         roles = [
-            "1545842045258825809",  # Creator
-            "1545482300601405590",  # Mari
+            "1540425618620162139",  # founder
+            "1544774603606331423",
+            "1545482300601405590",  # Cutie
             "1512494871171043543",  # owner
             "1512494871171043541",  # manager
-            "1545847662392119367",  # head manager
             "1544803993480466563",  # co owner
-            "1543925240705585284",  # overlord
+            "1546192012435390515",  # community manager
         ]
     return " ".join([f"<@&{r}>" for r in roles])
 
-
 def has_staff_permission(member: discord.Member):
     try:
-        all_roles = ALL_STAFF_ROLES + SUPPORT_ONLY_ROLES + REWARD_STAFF_ROLES + ADS_STAFF_ROLES + ALL_INDEX_ROLES + ALL_MM_ROLES
+        all_roles = ALL_STAFF_ROLES + SUPPORT_ONLY_ROLES + REWARD_STAFF_ROLES + ADS_STAFF_ROLES + ALL_INDEX_ROLES
         return any(str(role.id) in all_roles for role in member.roles)
     except:
         return False
-
 
 def has_high_staff_permission(member: discord.Member):
     """For +add and +remove only"""
@@ -254,7 +218,6 @@ def has_high_staff_permission(member: discord.Member):
     except:
         return False
 
-
 def is_ticket_opener(channel, user):
     """Check if the user is the one who opened the ticket"""
     if not channel.topic or not str(channel.topic).startswith("ticket-"):
@@ -262,13 +225,11 @@ def is_ticket_opener(channel, user):
     opener_id = str(channel.topic).replace("ticket-", "")
     return str(user.id) == opener_id
 
-
 def clean_channel_name(name: str) -> str:
     name = name.lower()
     name = re.sub(r'[^a-z0-9\-]', '-', name)
     name = re.sub(r'-+', '-', name).strip('-')
     return name[:90] if name else "ticket"
-
 
 async def resolve_member(ctx: commands.Context, user_input: str):
     """Resolve a user by mention, ID, or username"""
@@ -295,9 +256,7 @@ async def resolve_member(ctx: commands.Context, user_input: str):
             return member
         if user_input_lower in member.name.lower() or user_input_lower in member.display_name.lower():
             return member
-
     return None
-
 
 # ==================== TICKET SELECT MENU ====================
 class TicketSelect(Select):
@@ -345,12 +304,10 @@ class TicketSelect(Select):
     async def callback(self, interaction: discord.Interaction):
         await create_ticket(interaction, self.values[0])
 
-
 class TicketView(View):
     def __init__(self):
         super().__init__(timeout=None)
         self.add_item(TicketSelect())
-
 
 # ==================== INDEX SELECT MENU ====================
 class IndexSelect(Select):
@@ -446,12 +403,10 @@ class IndexSelect(Select):
     async def callback(self, interaction: discord.Interaction):
         await create_index_ticket(interaction, self.values[0])
 
-
 class IndexView(View):
     def __init__(self):
         super().__init__(timeout=None)
         self.add_item(IndexSelect())
-
 
 # ==================== TICKET BUTTONS ====================
 class TicketButtons(View):
@@ -481,13 +436,7 @@ class TicketButtons(View):
             return await interaction.response.send_message("Only staff or the ticket owner can close tickets.", ephemeral=True)
 
         await interaction.response.defer()
-        deleted = await close_ticket(interaction.channel, interaction.user)
-        if not deleted:
-            try:
-                await interaction.followup.send("❌ Could not delete this channel. Make sure the bot has **Manage Channels** in this category.", ephemeral=True)
-            except:
-                pass
-
+        await close_ticket(interaction.channel, interaction.user)
 
 # ==================== CREATE TICKET ====================
 async def create_ticket(interaction: discord.Interaction, ticket_type: str):
@@ -559,7 +508,6 @@ async def create_ticket(interaction: discord.Interaction, ticket_type: str):
             )
 
     category = guild.get_channel(category_id)
-
     channel = await guild.create_text_channel(
         name=channel_name,
         category=category,
@@ -638,7 +586,6 @@ async def create_ticket(interaction: discord.Interaction, ticket_type: str):
 
     await interaction.response.send_message(f"Ticket created: {channel.mention}", ephemeral=True)
 
-
 # ==================== CREATE INDEX TICKET ====================
 async def create_index_ticket(interaction: discord.Interaction, base_key: str):
     guild = interaction.guild
@@ -694,7 +641,6 @@ async def create_index_ticket(interaction: discord.Interaction, base_key: str):
             )
 
     category = guild.get_channel(INDEX_CATEGORY_ID)
-
     channel = await guild.create_text_channel(
         name=channel_name,
         category=category,
@@ -726,392 +672,9 @@ async def create_index_ticket(interaction: discord.Interaction, base_key: str):
 
     await interaction.response.send_message(f"Index ticket created: {channel.mention}", ephemeral=True)
 
-
-
-# ==================== MIDDLEMAN SELECT + MODAL ====================
-class MiddlemanModal(discord.ui.Modal, title="MiddleMan Request"):
-    def __init__(self, trade_type: str):
-        super().__init__()
-        self.trade_type = trade_type
-
-        self.trade_with = discord.ui.TextInput(
-            label="Who is the trade with?",
-            placeholder="Ex: @mari",
-            required=True,
-            max_length=100
-        )
-        self.trade_details = discord.ui.TextInput(
-            label="What is the trade?",
-            placeholder="Ex: Dragon for garamas",
-            required=True,
-            max_length=200
-        )
-        self.tip = discord.ui.TextInput(
-            label="What is the tip?",
-            placeholder="Please tip 10% of the trade or it might get closed.",
-            required=True,
-            max_length=100
-        )
-        self.add_item(self.trade_with)
-        self.add_item(self.trade_details)
-        self.add_item(self.tip)
-
-    async def on_submit(self, interaction: discord.Interaction):
-        await create_middleman_ticket(
-            interaction,
-            self.trade_type,
-            self.trade_with.value,
-            self.trade_details.value,
-            self.tip.value
-        )
-
-
-class MiddlemanSelect(Select):
-    def __init__(self):
-        options = [
-            discord.SelectOption(
-                label="Cross Trades",
-                description="Cross trade middleman service",
-                value="cross",
-                emoji="🟡"
-            ),
-            discord.SelectOption(
-                label="OG Trades",
-                description="OG trade middleman service",
-                value="og",
-                emoji="🥇"
-            ),
-            discord.SelectOption(
-                label="1B+ Trades",
-                description="1B+ value middleman service",
-                value="1b",
-                emoji="🥈"
-            ),
-            discord.SelectOption(
-                label="250M-1B Trades",
-                description="250M to 1B middleman service",
-                value="250m",
-                emoji="🥉"
-            ),
-            discord.SelectOption(
-                label="0-250M Trades",
-                description="0 to 250M middleman service",
-                value="0-250m",
-                emoji="✅"
-            ),
-        ]
-        super().__init__(
-            placeholder="Select an option",
-            min_values=1,
-            max_values=1,
-            options=options,
-            custom_id="middleman_select"
-        )
-
-    async def callback(self, interaction: discord.Interaction):
-        await interaction.response.send_modal(MiddlemanModal(self.values[0]))
-
-
-class MiddlemanView(View):
-    def __init__(self):
-        super().__init__(timeout=None)
-        self.add_item(MiddlemanSelect())
-
-
-async def create_middleman_ticket(interaction: discord.Interaction, trade_type: str, trade_with: str, trade_details: str, tip: str):
-    guild = interaction.guild
-    member = interaction.user
-
-    # Prevent multiple open tickets
-    for channel in guild.text_channels:
-        if channel.topic == f"ticket-{member.id}":
-            return await interaction.response.send_message(
-                f"You already have an open ticket: {channel.mention}", ephemeral=True
-            )
-
-    if trade_type not in MM_ROLES:
-        return await interaction.response.send_message("Invalid trade type selected.", ephemeral=True)
-
-    config["ticketCounter"] += 1
-    save_config()
-
-    display_name = MM_DISPLAY.get(trade_type, trade_type)
-    role_id = MM_ROLES[trade_type]
-    emoji = MM_EMOJIS.get(trade_type, "🤝")
-
-    # Channel name = the option they picked
-    channel_name = clean_channel_name(display_name)
-
-    overwrites = {
-        guild.default_role: discord.PermissionOverwrite(view_channel=False),
-        member: discord.PermissionOverwrite(
-            view_channel=True,
-            send_messages=True,
-            attach_files=True,
-            read_message_history=True
-        ),
-        guild.me: discord.PermissionOverwrite(
-            view_channel=True,
-            send_messages=True,
-            manage_channels=True,
-            manage_messages=True
-        )
-    }
-
-    # Allow all staff + only the specific middleman role for this ticket type
-    for role_id_str in ALL_STAFF_ROLES + [role_id]:
-        role = guild.get_role(int(role_id_str))
-        if role:
-            overwrites[role] = discord.PermissionOverwrite(
-                view_channel=True,
-                send_messages=True,
-                attach_files=True,
-                read_message_history=True,
-                manage_messages=True
-            )
-
-    category = guild.get_channel(MM_CATEGORY_ID)
-
-    channel = await guild.create_text_channel(
-        name=channel_name,
-        category=category,
-        topic=f"ticket-{member.id}",
-        overwrites=overwrites
-    )
-
-    embed = discord.Embed(
-        title=f"{emoji} MiddleMan Request: {display_name}",
-        description=(
-            f"**Ticket opened by {member.mention}**\n\n"
-            f"**Service:** {display_name}\n"
-            f"**Trade with:** {trade_with}\n"
-            f"**Trade:** {trade_details}\n"
-            f"**Tip:** {tip}\n\n"
-            "A middleman will assist you shortly.\n"
-            "Please wait and do not ping staff repeatedly."
-        ),
-        color=0xED4245
-    )
-
-    # Only ping the specific middleman role for this ticket type
-    await channel.send(
-        content=f"<@&{role_id}>",
-        embed=embed,
-        view=TicketButtons()
-    )
-
-    await interaction.response.send_message(f"MiddleMan ticket created: {channel.mention}", ephemeral=True)
-
-
-
-# ==================== STAFF PANEL SELECT ====================
-class StaffPanelSelect(Select):
-    def __init__(self):
-        options = [
-            discord.SelectOption(
-                label="Staff Application",
-                description="Apply for a staff position on the team",
-                value="recruitment",
-                emoji="📝"
-            ),
-            discord.SelectOption(
-                label="Pay for Rolls",
-                description="Purchase secure rolls for staff",
-                value="payrolls",
-                emoji="🎟️"
-            ),
-            discord.SelectOption(
-                label="Index Provider",
-                description="Apply to become an index provider",
-                value="indexprovider",
-                emoji="📦"
-            ),
-            discord.SelectOption(
-                label="Middleman Application",
-                description="Apply to become a middleman",
-                value="mmapplication",
-                emoji="🤝"
-            ),
-        ]
-        super().__init__(
-            placeholder="Choose a staff option...",
-            min_values=1,
-            max_values=1,
-            options=options,
-            custom_id="staff_panel_select"
-        )
-
-    async def callback(self, interaction: discord.Interaction):
-        await create_staff_ticket(interaction, self.values[0])
-
-
-class StaffPanelView(View):
-    def __init__(self):
-        super().__init__(timeout=None)
-        self.add_item(StaffPanelSelect())
-
-
-async def create_staff_ticket(interaction: discord.Interaction, ticket_type: str):
-    guild = interaction.guild
-    member = interaction.user
-
-    for channel in guild.text_channels:
-        if channel.topic == f"ticket-{member.id}":
-            return await interaction.response.send_message(
-                f"You already have an open ticket: {channel.mention}", ephemeral=True
-            )
-
-    category_id = STAFF_CATEGORY_IDS.get(ticket_type)
-    if not category_id:
-        return await interaction.response.send_message(
-            "Staff category is not set for this option. Please contact an administrator.", ephemeral=True
-        )
-
-    config["ticketCounter"] += 1
-    save_config()
-
-    # Channel name = username (same as other tickets)
-    channel_name = clean_channel_name(member.name)
-
-    overwrites = {
-        guild.default_role: discord.PermissionOverwrite(view_channel=False),
-        member: discord.PermissionOverwrite(
-            view_channel=True,
-            send_messages=True,
-            attach_files=True,
-            read_message_history=True
-        ),
-        guild.me: discord.PermissionOverwrite(
-            view_channel=True,
-            send_messages=True,
-            manage_channels=True,
-            manage_messages=True
-        )
-    }
-
-    for role_id_str in STAFF_PANEL_ROLES:
-        role = guild.get_role(int(role_id_str))
-        if role:
-            overwrites[role] = discord.PermissionOverwrite(
-                view_channel=True,
-                send_messages=True,
-                attach_files=True,
-                read_message_history=True,
-                manage_messages=True
-            )
-
-    category = guild.get_channel(category_id)
-    channel = await guild.create_text_channel(
-        name=channel_name,
-        category=category,
-        topic=f"ticket-{member.id}",
-        overwrites=overwrites
-    )
-
-    # Pings:
-    # - Pay for Rolls: Creator + Owner only
-    # - Other staff tickets: Creator, Owner, Co Owner, Overlord
-    if ticket_type == "payrolls":
-        ping = "<@&1545842045258825809> <@&1512494871171043543>"  # Creator + Owner
-    else:
-        ping = " ".join([
-            "<@&1545842045258825809>",  # Creator
-            "<@&1512494871171043543>",  # Owner
-            "<@&1544803993480466563>",  # Co Owner
-            "<@&1543925240705585284>",  # Overlord
-        ])
-
-    if ticket_type == "recruitment":
-        embed = discord.Embed(
-            title="📝 Staff Application",
-            description=(
-                f"Welcome {member.mention}! Thanks for applying to join the team.\n\n"
-                "Please answer **every question** below honestly and professionally. "
-                "A recruiter will review your application shortly.\n\n"
-                "**Application Form**\n"
-                "```\n"
-                "1. Discord Username:\n"
-                "2. Age:\n"
-                "3. Are you fluent in English?\n"
-                "4. How many days per week are you active?\n"
-                "5. How many hours per day are you usually online?\n"
-                "6. How would you handle a toxic member breaking the rules?\n"
-                "7. Do you have any previous moderation or staff experience?\n"
-                "   (If yes, please explain)\n"
-                "8. Why do you want to become a staff member?\n"
-                "9. Anything else you would like us to know?\n"
-                "```\n\n"
-                "Copy the form, fill it out, and send it in this ticket."
-            ),
-            color=0x000000
-        )
-        embed.set_footer(text="Staff Recruitment")
-    elif ticket_type == "payrolls":
-        embed = discord.Embed(
-            title="🎟️ Pay for Rolls",
-            description=(
-                f"Ticket opened by {member.mention}\n\n"
-                "**Staff Pay Rates**\n"
-                "```\n"
-                "Test Mod          — 2 Garams\n"
-                "Moderator         — 3 Garams\n"
-                "Senior Moderator  — 4 Garams\n"
-                "Head Staff        — 5 Garams\n"
-                "Admin             — 7 Garams OR 1 Colored Garam\n"
-                "Manager           — 2 Colored Garams\n"
-                "Head Manager      — 3 Colored Garams\n"
-                "```\n\n"
-                "Tell us which role you are paying for and what you are offering. "
-                "A Creator / Owner will assist you shortly."
-            ),
-            color=0x000000
-        )
-        embed.set_footer(text="Pay for Rolls")
-    elif ticket_type == "indexprovider":
-        embed = discord.Embed(
-            title="📦 Index Provider Application",
-            description=(
-                f"Welcome {member.mention}!\n\n"
-                "Thanks for your interest in becoming an **Index Provider**.\n\n"
-                "**Payment & Collat:** 1+ Drag\n\n"
-                "Please tell us:\n"
-                "• Why you want to be an index provider\n"
-                "• How active you are\n"
-                "• Any relevant experience\n\n"
-                "Staff will review your request soon."
-            ),
-            color=0x000000
-        )
-        embed.set_footer(text="Index Provider")
-    else:  # mmapplication
-        embed = discord.Embed(
-            title="🤝 Middleman Application",
-            description=(
-                f"Welcome {member.mention}!\n\n"
-                "Thanks for applying to become a **Middleman**.\n\n"
-                "**Payment & Collat:** 1+ Drag\n\n"
-                "Please tell us:\n"
-                "• Why you want to middleman\n"
-                "• How often you can be online\n"
-                "• Any past middleman experience\n\n"
-                "Staff will get back to you shortly."
-            ),
-            color=0x000000
-        )
-        embed.set_footer(text="Middleman Application")
-
-    await channel.send(content=ping, embed=embed, view=TicketButtons())
-    await interaction.response.send_message(f"Ticket created: {channel.mention}", ephemeral=True)
-
-
 # ==================== CLOSE TICKET ====================
-async def close_ticket(channel: discord.TextChannel, closer: discord.Member) -> bool:
-    """Close ticket, send transcript, delete channel. Returns True if channel was deleted."""
-    channel_name = channel.name
-    channel_id = channel.id
-    topic = channel.topic  # save before delete
-
-    # Snapshot messages before delete
+async def close_ticket(channel: discord.TextChannel, closer: discord.Member):
+    # Generate transcript quickly then delete channel immediately
     try:
         messages = [msg async for msg in channel.history(limit=50, oldest_first=True)]
         transcript = "---- TICKET LOGS ----\n\n"
@@ -1121,68 +684,41 @@ async def close_ticket(channel: discord.TextChannel, closer: discord.Member) -> 
             if msg.embeds:
                 transcript += f"<EMBED {msg.embeds[0].title or 'Embed'}>\n"
 
-        log_path = f"log_{channel_id}.txt"
-        with open(log_path, "w", encoding="utf-8") as f:
+        with open("log.txt", "w", encoding="utf-8") as f:
             f.write(transcript)
 
         log_channel = bot.get_channel(int(config.get("transcriptChannelId", 0) or 0))
         if log_channel:
-            try:
-                await log_channel.send(
-                    content=f"Ticket closed by {closer} ({closer.id})\nChannel: `{channel_name}`",
-                    file=discord.File(log_path, filename="log.txt")
-                )
-            except Exception as e:
-                print(f"Log send error: {e}")
+            await log_channel.send(
+                content=f"Ticket closed by {closer.mention}\nChannel: `{channel.name}`",
+                file=discord.File("log.txt", filename="log.txt")
+            )
+    except:
+        pass
 
-        if os.path.exists(log_path):
-            try:
-                os.remove(log_path)
-            except:
-                pass
-    except Exception as e:
-        print(f"Transcript error: {e}")
-
-    # Delete channel once — do not recreate
+    # Delete channel immediately
     try:
-        await channel.delete(reason=f"Ticket closed by {closer}")
-        print(f"Deleted ticket channel: {channel_name} ({channel_id})")
-        return True
-    except discord.NotFound:
-        return True
-    except discord.Forbidden:
-        print(f"Missing Manage Channels permission to delete {channel_name} ({channel_id})")
-        return False
-    except Exception as e:
-        print(f"Delete failed for {channel_name}: {e}")
-        # Last try
+        await channel.delete()
+    except:
+        pass
+
+    if os.path.exists("log.txt"):
         try:
-            await asyncio.sleep(1)
-            ch = closer.guild.get_channel(channel_id) if closer.guild else None
-            if ch:
-                await ch.delete(reason=f"Ticket closed by {closer} (retry)")
-                return True
+            os.remove("log.txt")
         except:
             pass
-        return False
-
 
 # ==================== EVENTS ====================
 @bot.event
 async def on_ready():
     print(f"Logged in as {bot.user} (ID: {bot.user.id})")
     print("Bot is ready!")
-
     await bot.change_presence(
         activity=discord.Streaming(name="LEOS EMPIRE", url="https://twitch.tv/discord")
     )
-
     bot.add_view(TicketView())
     bot.add_view(TicketButtons())
     bot.add_view(IndexView())
-    bot.add_view(MiddlemanView())
-    bot.add_view(StaffPanelView())
-
 
 @bot.event
 async def on_message(message: discord.Message):
@@ -1197,6 +733,55 @@ async def on_message(message: discord.Message):
 
     await bot.process_commands(message)
 
+@bot.event
+async def on_raw_reaction_add(payload: discord.RawReactionActionEvent):
+    """Give game role when user reacts"""
+    if payload.user_id == bot.user.id:
+        return
+
+    emoji = str(payload.emoji)
+    if emoji not in GAME_ROLES:
+        return
+
+    guild = bot.get_guild(payload.guild_id)
+    if not guild:
+        return
+
+    member = guild.get_member(payload.user_id)
+    if not member:
+        return
+
+    role = guild.get_role(GAME_ROLES[emoji])
+    if role and role not in member.roles:
+        try:
+            await member.add_roles(role, reason="Game reaction role")
+        except:
+            pass
+
+@bot.event
+async def on_raw_reaction_remove(payload: discord.RawReactionActionEvent):
+    """Remove game role when user removes reaction"""
+    if payload.user_id == bot.user.id:
+        return
+
+    emoji = str(payload.emoji)
+    if emoji not in GAME_ROLES:
+        return
+
+    guild = bot.get_guild(payload.guild_id)
+    if not guild:
+        return
+
+    member = guild.get_member(payload.user_id)
+    if not member:
+        return
+
+    role = guild.get_role(GAME_ROLES[emoji])
+    if role and role in member.roles:
+        try:
+            await member.remove_roles(role, reason="Game reaction role removed")
+        except:
+            pass
 
 # ==================== COMMANDS ====================
 @bot.command(name="panel")
@@ -1213,7 +798,6 @@ async def panel_command(ctx: commands.Context):
     except:
         pass
 
-
 @bot.command(name="indexpanel")
 @commands.has_permissions(administrator=True)
 async def indexpanel_command(ctx: commands.Context):
@@ -1221,20 +805,6 @@ async def indexpanel_command(ctx: commands.Context):
         title="Request a Indexing Service",
         description=(
             "Request an indexing service by selecting one of the available bases below.\n\n"
-            f"🟡 **Gold Base** — <@&{INDEX_ROLES['gold']}>\n"
-            f"💠 **Diamond Base** — <@&{INDEX_ROLES['diamond']}>\n"
-            f"🌈 **Rainbow Base** — <@&{INDEX_ROLES['rainbow']}>\n"
-            f"🌌 **Galaxy Base** — <@&{INDEX_ROLES['galaxy']}>\n"
-            f"🍬 **Candy Base** — <@&{INDEX_ROLES['candy']}>\n"
-            f"🌋 **Lava Base** — <@&{INDEX_ROLES['lava']}>\n"
-            f"☢️ **Radioactive Base** — <@&{INDEX_ROLES['radioactive']}>\n"
-            f"☯️ **YingYang Base** — <@&{INDEX_ROLES['yingyang']}>\n"
-            f"☠️ **Cursed Base** — <@&{INDEX_ROLES['cursed']}>\n"
-            f"✨ **Divine Base** — <@&{INDEX_ROLES['divine']}>\n"
-            f"🤖 **Cyber Base** — <@&{INDEX_ROLES['cyber']}>\n"
-            f"👻 **Phantom Base** — <@&{INDEX_ROLES['phantom']}>\n"
-            f"💎 **Crystal Base** — <@&{INDEX_ROLES['crystal']}>\n\n"
-            "----------------------------------------\n"
             "**Index Base Rules**\n"
             "PLEASE FOLLOW THESE RULES DURING INDEXING\n\n"
             "1. PLEASE HAVE AN EMPTY BASE\n"
@@ -1252,60 +822,37 @@ async def indexpanel_command(ctx: commands.Context):
     except:
         pass
 
-
-
-
-
-@bot.command(name="staffpanel")
+@bot.command(name="gamepanel")
 @commands.has_permissions(administrator=True)
-async def staffpanel_command(ctx: commands.Context):
-
+async def gamepanel_command(ctx: commands.Context):
+    """Posts the reaction roles panel for game access"""
     embed = discord.Embed(
-        title="Staff & Team Opportunities",
+        title="🎮 ROBLOX HUB • GAME ROLES :",
         description=(
-            "Interested in joining the team or unlocking staff services?\n"
-            "Pick an option below to open a private ticket.\n\n"
-            "📝 **Staff Application** — Apply for a staff position\n"
-            "🎟️ **Pay for Rolls** — Purchase secure staff rolls\n"
-            "📦 **Index Provider** — Apply to become an index provider\n"
-            "🤝 **Middleman Application** — Apply to become a middleman\n\n"
-            "Our team will review every request carefully."
+            "Take access to your favorite games by clicking on the corresponding reaction below this message.\n\n"
+            "**Games available :**\n\n"
+            f"🧠 → {GAME_ROLE_NAMES['🧠']}\n"
+            f"🍉 → {GAME_ROLE_NAMES['🍉']}\n"
+            f"🌱 → {GAME_ROLE_NAMES['🌱']}\n"
+            f"🎮 → {GAME_ROLE_NAMES['🎮']}"
         ),
-        color=0x000000
+        color=0x5865F2
     )
-    embed.set_footer(text="Select an option to get started")
-    await ctx.send(embed=embed, view=StaffPanelView())
+    embed.set_footer(text="React below to get / remove the role")
+
+    msg = await ctx.send(embed=embed)
+
+    # Add the reactions
+    for emoji in GAME_ROLES.keys():
+        try:
+            await msg.add_reaction(emoji)
+        except:
+            pass
+
     try:
         await ctx.message.delete()
     except:
         pass
-
-
-@bot.command(name="mmpanel")
-async def mmpanel_command(ctx: commands.Context):
-    # Admin Discord perm OR high staff roles
-    if not (ctx.author.guild_permissions.administrator or has_high_staff_permission(ctx.author)):
-        return await ctx.reply("❌ You do not have permission to use this command.", mention_author=False)
-
-    embed = discord.Embed(
-        title="MiddleMan Services",
-        description=(
-            "Click bellow to choose one of these trade services\n\n"
-            "• **Cross Trades** 🟡\n"
-            "• **OG Trades** 🥇\n"
-            "• **1B+ Trades** 🥈\n"
-            "• **250M-1B Trades** 🥉\n"
-            "• **0-250M Trades** ✅\n\n"
-            "*Powered by Ticket King*"
-        ),
-        color=0xED4245
-    )
-    await ctx.send(embed=embed, view=MiddlemanView())
-    try:
-        await ctx.message.delete()
-    except:
-        pass
-
 
 @bot.command(name="commands")
 async def commands_command(ctx: commands.Context):
@@ -1320,8 +867,7 @@ async def commands_command(ctx: commands.Context):
     )
     embed.add_field(name="`+panel`", value="Sends the ticket panel\n*(Admin only)*", inline=False)
     embed.add_field(name="`+indexpanel`", value="Sends the indexing service panel\n*(Admin only)*", inline=False)
-    embed.add_field(name="`+mmpanel`", value="Sends the MiddleMan services panel\n*(Admin only)*", inline=False)
-    embed.add_field(name="`+staffpanel`", value="Sends the staff recruitment panel\n*(Admin only)*", inline=False)
+    embed.add_field(name="`+gamepanel`", value="Sends the game reaction roles panel\n*(Admin only)*", inline=False)
     embed.add_field(name="`+commands`", value="Shows this help menu", inline=False)
     embed.add_field(name="`+rename <name>`", value="Renames the current ticket", inline=False)
     embed.add_field(name="`+claim`", value="Claims the current ticket", inline=False)
@@ -1330,9 +876,7 @@ async def commands_command(ctx: commands.Context):
     embed.add_field(name="`+remove <user>`", value="Removes a user from the ticket\n(ID, @mention, or username)", inline=False)
     embed.add_field(name="`+testperm`", value="Checks if the bot sees you as staff", inline=False)
     embed.set_footer(text="Prefix: + | Staff only")
-
     await ctx.reply(embed=embed, mention_author=False)
-
 
 @bot.command(name="testperm")
 async def testperm_command(ctx: commands.Context):
@@ -1340,7 +884,6 @@ async def testperm_command(ctx: commands.Context):
         await ctx.reply("✅ You **have** staff permission.", mention_author=False)
     else:
         await ctx.reply("❌ You do **not** have staff permission.", mention_author=False)
-
 
 @bot.command(name="rename")
 async def rename_command(ctx: commands.Context, *, new_name: str = None):
@@ -1354,7 +897,6 @@ async def rename_command(ctx: commands.Context, *, new_name: str = None):
         return await ctx.reply("❌ Please provide a name.\nExample: `+rename giveaway won`")
 
     clean_name = new_name.lower().replace(" ", "-")[:100]
-
     try:
         await ctx.channel.edit(name=clean_name)
         await ctx.reply("✅ Ticket renamed successfully")
@@ -1362,7 +904,6 @@ async def rename_command(ctx: commands.Context, *, new_name: str = None):
         await ctx.reply("❌ I don't have **Manage Channels** permission.")
     except Exception as e:
         await ctx.reply(f"❌ Error: `{e}`")
-
 
 @bot.command(name="claim")
 async def claim_command(ctx: commands.Context):
@@ -1394,7 +935,6 @@ async def claim_command(ctx: commands.Context):
     except Exception as e:
         await ctx.reply(f"❌ Error while claiming: `{e}`")
 
-
 @bot.command(name="close")
 async def close_command(ctx: commands.Context):
     if not ctx.channel.topic or not str(ctx.channel.topic).startswith("ticket-"):
@@ -1404,13 +944,7 @@ async def close_command(ctx: commands.Context):
     if not (is_ticket_opener(ctx.channel, ctx.author) or has_staff_permission(ctx.author)):
         return await ctx.reply("❌ Only staff or the ticket owner can close tickets.", mention_author=False)
 
-    deleted = await close_ticket(ctx.channel, ctx.author)
-    if not deleted:
-        try:
-            await ctx.reply("❌ Could not delete this channel. Make sure the bot has **Manage Channels** in this category.")
-        except:
-            pass
-
+    await close_ticket(ctx.channel, ctx.author)
 
 @bot.command(name="add")
 async def add_command(ctx: commands.Context, *, user_input: str = None):
@@ -1442,7 +976,6 @@ async def add_command(ctx: commands.Context, *, user_input: str = None):
     except Exception as e:
         await ctx.reply(f"❌ Error: `{e}`")
 
-
 @bot.command(name="remove")
 async def remove_command(ctx: commands.Context, *, user_input: str = None):
     """Remove a user from the current ticket"""
@@ -1472,24 +1005,6 @@ async def remove_command(ctx: commands.Context, *, user_input: str = None):
         await ctx.reply("❌ I don't have permission to edit channel permissions.")
     except Exception as e:
         await ctx.reply(f"❌ Error: `{e}`")
-
-
-
-@bot.event
-async def on_command_error(ctx: commands.Context, error):
-    if isinstance(error, commands.MissingPermissions):
-        return await ctx.reply("❌ You do not have permission to use this command.", mention_author=False)
-    if isinstance(error, commands.CommandNotFound):
-        return
-    if isinstance(error, commands.MissingRequiredArgument):
-        return await ctx.reply(f"❌ Missing argument: `{error.param.name}`", mention_author=False)
-    # Log unexpected errors
-    try:
-        await ctx.reply(f"❌ Error: `{error}`", mention_author=False)
-    except:
-        pass
-    print(f"Command error in {ctx.command}: {error}")
-
 
 # ==================== RUN ====================
 bot.run(os.getenv("TOKEN") or config.get("token"))
