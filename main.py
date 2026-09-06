@@ -1279,6 +1279,45 @@ async def on_message(message: discord.Message):
 
 # ==================== COMMANDS ====================
 
+
+@bot.command(name="invitepanel")
+@commands.has_permissions(administrator=True)
+async def invitepanel_command(ctx: commands.Context):
+    """Posts the invite rewards panel to the invite channel"""
+    channel = bot.get_channel(1546243778031919184)
+    if channel is None:
+        try:
+            channel = await bot.fetch_channel(1546243778031919184)
+        except:
+            return await ctx.reply("❌ Could not find the invite rewards channel.")
+
+    embed = discord.Embed(
+        title="🎁 EARN FREE BRAINROTS",
+        description=(
+            "We have **invite rewards** so you can have a chance to win free brainrots.\n\n"
+            "All you have to do is **invite people** to the server with your own link and have them join, "
+            "and you can get free rewards.\n"
+            "You can do so easily by sharing out many giveaways — they'd want free stuff.\n\n"
+            "**REWARDS:**\n"
+            "🥇 **Garama** = **8 invites**\n"
+            "🐋 **Moby** (or same value) = **15 invites**\n"
+            "🌈 **Colored Garama** or **Cerb** = **25 invites**\n"
+            "💎 **2 Colored Garama** or **8 Garamas** = **50 invites**\n"
+            "🐉 **Dragon** = **120 invites**\n\n"
+            "**UNLIMITED STOCK** — Start inviting, get rewards! 🏆"
+        ),
+        color=0xFEE75C
+    )
+    embed.set_footer(text="Invite friends • Claim rewards with staff")
+
+    await channel.send(content="@everyone @here", embed=embed)
+    await ctx.reply(f"✅ Invite panel sent to {channel.mention}", mention_author=False)
+    try:
+        await ctx.message.delete()
+    except:
+        pass
+
+
 @bot.command(name="rolepanel")
 @commands.has_permissions(administrator=True)
 async def rolepanel_command(ctx: commands.Context):
@@ -1434,6 +1473,7 @@ async def commands_command(ctx: commands.Context):
     embed.add_field(name="`+mmpanel`", value="Sends the MiddleMan services panel\n*(Admin only)*", inline=False)
     embed.add_field(name="`+staffpanel`", value="Sends the staff recruitment panel\n*(Admin only)*", inline=False)
     embed.add_field(name="`+rolepanel`", value="Sends the game reaction role panel\n*(Admin only)*", inline=False)
+    embed.add_field(name="`+invitepanel`", value="Sends the invite rewards panel\n*(Admin only)*", inline=False)
     embed.add_field(name="`+commands`", value="Shows this help menu", inline=False)
     embed.add_field(name="`+rename <name>`", value="Renames the current ticket", inline=False)
     embed.add_field(name="`+claim`", value="Claims the current ticket", inline=False)
