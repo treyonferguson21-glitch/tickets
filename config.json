@@ -2,5 +2,7 @@
   "token": "",
   "transcriptChannelId": "1544449120947806359",
   "staffRoles": [],
-  "ticketCounter": 0
+  "ticketCounter": 0,
+  "joinToCreateChannelId": 1234567890123456789,
+  "tempVcCategoryId": 1234567890123456789
 }
