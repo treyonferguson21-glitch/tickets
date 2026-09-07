@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from discord.ui import View, Select, Button, Modal, TextInput
+from discord.ui import View, Select, Button
 import json
 import os
 from datetime import datetime
@@ -15,18 +15,10 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 intents.guilds = True
-intents.voice_states = True  # REQUIRED for Join-to-Create
 
 bot = commands.Bot(command_prefix="+", intents=intents)
 
-# ==================== JOIN TO CREATE CONFIG ====================
-JOIN_TO_CREATE_CHANNEL_ID = int(config.get("joinToCreateChannelId", 0))  # <-- PUT YOUR JOIN CHANNEL ID
-TEMP_VC_CATEGORY_ID = int(config.get("tempVcCategoryId", 0))            # <-- PUT YOUR CATEGORY ID
-
-# Tracks temporary channels: {channel_id: {"owner_id": int, "text_channel_id": int or None}}
-temp_channels = {}
-
-# ==================== YOUR EXISTING ROLE LISTS ====================
+# All roles that can see Support + Scammer tickets
 ALL_STAFF_ROLES = [
     "1545842045258825809",  # Creator
     "1545482300601405590",  # Mari
@@ -42,6 +34,7 @@ ALL_STAFF_ROLES = [
     "1512494871158591779",  # Moderator
 ]
 
+# Extra roles that can ONLY see Support tickets (not Report)
 SUPPORT_ONLY_ROLES = [
     "1545147283987894272",
     "1545147223140995142",
@@ -49,49 +42,54 @@ SUPPORT_ONLY_ROLES = [
     "1545140559365283972",
 ]
 
+# Only Manager and above (excluding Admin + Head Staff) can see Reward tickets
 REWARD_STAFF_ROLES = [
-    "1545842045258825809",
-    "1545482300601405590",
-    "1512494871171043543",
-    "1544803993480466563",
-    "1534637036542365787",
-    "1546192012435390515",
-    "1512494871171043541",
+    "1545842045258825809",  # Creator
+    "1545482300601405590",  # Mari
+    "1512494871171043543",  # owners
+    "1544803993480466563",  # co owners
+    "1534637036542365787",  # king
+    "1546192012435390515",  # overlord
+    "1512494871171043541",  # manager
 ]
 
+# Only Creator + Owner can see Ads tickets
 ADS_STAFF_ROLES = [
-    "1545842045258825809",
-    "1512494871171043543",
+    "1545842045258825809",  # Creator
+    "1512494871171043543",  # owner
 ]
 
+# Only these roles can use +add and +remove
 HIGH_STAFF_ROLES = [
-    "1545842045258825809",
-    "1545482300601405590",
-    "1512494871171043543",
-    "1544803993480466563",
-    "1534637036542365787",
-    "1546192012435390515",
-    "1512494871171043541",
-    "1512494871171043540",
-    "1545847662392119367",
-    "1543926509520293908",
+    "1545842045258825809",  # Creator
+    "1545482300601405590",  # Mari
+    "1512494871171043543",  # owner
+    "1544803993480466563",  # co owner
+    "1534637036542365787",  # king
+    "1546192012435390515",  # overlord
+    "1512494871171043541",  # manager
+    "1512494871171043540",  # Administrator
+    "1545847662392119367",  # head manager
+    "1543926509520293908",  # head staff
 ]
 
+# Only Creator + Owner + Co Owner can see Pay for Rolls tickets
 ROLLS_STAFF_ROLES = [
-    "1545842045258825809",
-    "1512494871171043543",
-    "1544803993480466563",
+    "1545842045258825809",  # Creator
+    "1512494871171043543",  # owner
+    "1544803993480466563",  # co owner
 ]
+
 
 # ==================== MIDDLEMAN SERVICE ====================
-MM_CATEGORY_ID = 1546222244995539024
+MM_CATEGORY_ID = 1546222244995539024  # where middleman tickets go
 
 MM_ROLES = {
-    "cross": "1545889601166778468",
-    "og": "1545889664249110569",
-    "1b": "1544463220377526383",
-    "250m": "1544463037266657391",
-    "0-250m": "1544462860359442442",
+    "cross": "1545889601166778468",      # Cross trade
+    "og": "1545889664249110569",         # OG Middleman
+    "1b": "1544463220377526383",         # 1B+ middleman
+    "250m": "1544463037266657391",       # 250M-1B / 500m middleman
+    "0-250m": "1544462860359442442",     # 0-250M middleman
 }
 
 MM_DISPLAY = {
@@ -112,13 +110,13 @@ MM_EMOJIS = {
 
 ALL_MM_ROLES = list(MM_ROLES.values())
 
-# ==================== REACTION ROLES ====================
+# ==================== REACTION ROLES (Game Access) ====================
 REACTION_ROLES = {
-    "🧠": 1512494871045210206,
-    "🍉": 1512494871045210207,
-    "🌱": 1512494871045210205,
-    "🎮": 1545889711116124222,
-    "⚔️": 1546202492440682496,
+    "🧠": 1512494871045210206,   # SAB
+    "🍉": 1512494871045210207,   # Blox Fruits
+    "🌱": 1512494871045210205,   # GAG2
+    "🎮": 1545889711116124222,   # Other Games
+    "⚔️": 1546202492440682496,   # JJS
 }
 
 REACTION_ROLE_LABELS = {
@@ -129,19 +127,21 @@ REACTION_ROLE_LABELS = {
     "⚔️": "JJS",
 }
 
-# ==================== STAFF / RECRUITMENT ====================
+
+
+# ==================== STAFF / RECRUITMENT PANEL ====================
 STAFF_CATEGORY_IDS = {
-    "recruitment": 1545919848490733718,
-    "payrolls": 1545919791670370475,
-    "indexprovider": 1545919725228400800,
-    "mmapplication": 1545919661584158910,
+    "recruitment": 1545919848490733718,    # MOD / staff application
+    "payrolls": 1545919791670370475,       # Pay for rolls
+    "indexprovider": 1545919725228400800,  # Indexers application
+    "mmapplication": 1545919661584158910,  # MM application
 }
 
 STAFF_PANEL_ROLES = [
-    "1545842045258825809",
-    "1512494871171043543",
-    "1544803993480466563",
-    "1546192012435390515",
+    "1545842045258825809",  # Creator
+    "1512494871171043543",  # owner
+    "1544803993480466563",  # co owner
+    "1546192012435390515",  # overlord
 ]
 
 # ==================== INDEXING SERVICE ====================
@@ -211,6 +211,7 @@ INDEX_EMOJIS = {
     "gold": "🟡",
 }
 
+# All index role IDs for staff permission checks
 ALL_INDEX_ROLES = list(INDEX_ROLES.values())
 
 
@@ -220,21 +221,42 @@ def save_config():
 
 
 def get_staff_mentions(ticket_type="support"):
+    # Overlord (1546192012435390515) is pinged on every ticket except Index and MM
     if ticket_type == "ads":
-        roles = ["1545842045258825809", "1545482300601405590", "1512494871171043543", "1546192012435390515"]
+        roles = [
+            "1545842045258825809",  # Creator
+            "1545482300601405590",  # Mari
+            "1512494871171043543",  # owner
+            "1546192012435390515",  # overlord
+        ]
     elif ticket_type == "rolls":
-        roles = ["1545842045258825809", "1512494871171043543", "1544803993480466563", "1546192012435390515"]
+        roles = [
+            "1545842045258825809",  # Creator
+            "1512494871171043543",  # owner
+            "1544803993480466563",  # co owner
+            "1546192012435390515",  # overlord
+        ]
     elif ticket_type == "support":
         roles = [
-            "1545842045258825809", "1545482300601405590", "1512494871171043543",
-            "1512494871171043541", "1545847662392119367", "1544803993480466563",
-            "1546192012435390515", "1545140559365283972"
+            "1545842045258825809",  # Creator
+            "1545482300601405590",  # Mari
+            "1512494871171043543",  # owner
+            "1512494871171043541",  # manager
+            "1545847662392119367",  # head manager
+            "1544803993480466563",  # co owner
+            "1546192012435390515",  # overlord
+            "1545140559365283972",  # extra support ping
         ]
     else:
+        # scammer / reward / default
         roles = [
-            "1545842045258825809", "1545482300601405590", "1512494871171043543",
-            "1512494871171043541", "1545847662392119367", "1544803993480466563",
-            "1546192012435390515"
+            "1545842045258825809",  # Creator
+            "1545482300601405590",  # Mari
+            "1512494871171043543",  # owner
+            "1512494871171043541",  # manager
+            "1545847662392119367",  # head manager
+            "1544803993480466563",  # co owner
+            "1546192012435390515",  # overlord
         ]
     return " ".join([f"<@&{r}>" for r in roles])
 
@@ -248,6 +270,7 @@ def has_staff_permission(member: discord.Member):
 
 
 def has_high_staff_permission(member: discord.Member):
+    """For +add and +remove only"""
     try:
         return any(str(role.id) in HIGH_STAFF_ROLES for role in member.roles)
     except:
@@ -255,6 +278,7 @@ def has_high_staff_permission(member: discord.Member):
 
 
 def is_ticket_opener(channel, user):
+    """Check if the user is the one who opened the ticket"""
     if not channel.topic or not str(channel.topic).startswith("ticket-"):
         return False
     opener_id = str(channel.topic).replace("ticket-", "")
@@ -269,9 +293,12 @@ def clean_channel_name(name: str) -> str:
 
 
 async def resolve_member(ctx: commands.Context, user_input: str):
+    """Resolve a user by mention, ID, or username"""
+    # Try mention first
     if ctx.message.mentions:
         return ctx.message.mentions[0]
 
+    # Try ID
     user_input = user_input.strip()
     if user_input.isdigit():
         member = ctx.guild.get_member(int(user_input))
@@ -283,210 +310,15 @@ async def resolve_member(ctx: commands.Context, user_input: str):
         except:
             pass
 
+    # Try username
     user_input_lower = user_input.lower()
     for member in ctx.guild.members:
         if member.name.lower() == user_input_lower or member.display_name.lower() == user_input_lower:
             return member
         if user_input_lower in member.name.lower() or user_input_lower in member.display_name.lower():
             return member
+
     return None
-
-
-# ==================== JOIN TO CREATE – CONTROL PANEL ====================
-class NameModal(Modal, title="Change Channel Name"):
-    new_name = TextInput(label="New channel name", max_length=100, required=True)
-
-    def __init__(self, channel: discord.VoiceChannel):
-        super().__init__()
-        self.channel = channel
-
-    async def on_submit(self, interaction: discord.Interaction):
-        data = temp_channels.get(self.channel.id)
-        if not data or data["owner_id"] != interaction.user.id:
-            return await interaction.response.send_message("Only the owner can do this.", ephemeral=True)
-        try:
-            await self.channel.edit(name=self.new_name.value)
-            await interaction.response.send_message(f"✅ Channel renamed to **{self.new_name.value}**", ephemeral=True)
-        except Exception as e:
-            await interaction.response.send_message(f"❌ Error: {e}", ephemeral=True)
-
-
-class LimitModal(Modal, title="Change User Limit"):
-    new_limit = TextInput(label="User limit (0 = unlimited)", max_length=2, required=True)
-
-    def __init__(self, channel: discord.VoiceChannel):
-        super().__init__()
-        self.channel = channel
-
-    async def on_submit(self, interaction: discord.Interaction):
-        data = temp_channels.get(self.channel.id)
-        if not data or data["owner_id"] != interaction.user.id:
-            return await interaction.response.send_message("Only the owner can do this.", ephemeral=True)
-        try:
-            limit = int(self.new_limit.value)
-            if limit < 0 or limit > 99:
-                return await interaction.response.send_message("Limit must be between 0-99.", ephemeral=True)
-            await self.channel.edit(user_limit=limit)
-            await interaction.response.send_message(
-                f"✅ User limit set to **{'unlimited' if limit == 0 else limit}**", ephemeral=True
-            )
-        except ValueError:
-            await interaction.response.send_message("Please enter a valid number.", ephemeral=True)
-        except Exception as e:
-            await interaction.response.send_message(f"❌ Error: {e}", ephemeral=True)
-
-
-class BitrateModal(Modal, title="Change Bitrate"):
-    new_bitrate = TextInput(label="Bitrate in kbps (8-384)", max_length=3, required=True)
-
-    def __init__(self, channel: discord.VoiceChannel):
-        super().__init__()
-        self.channel = channel
-
-    async def on_submit(self, interaction: discord.Interaction):
-        data = temp_channels.get(self.channel.id)
-        if not data or data["owner_id"] != interaction.user.id:
-            return await interaction.response.send_message("Only the owner can do this.", ephemeral=True)
-        try:
-            bitrate = int(self.new_bitrate.value)
-            bitrate = max(8, min(384, bitrate)) * 1000
-            await self.channel.edit(bitrate=bitrate)
-            await interaction.response.send_message(f"✅ Bitrate set to **{bitrate // 1000} kbps**", ephemeral=True)
-        except ValueError:
-            await interaction.response.send_message("Please enter a valid number.", ephemeral=True)
-        except Exception as e:
-            await interaction.response.send_message(f"❌ Error: {e}", ephemeral=True)
-
-
-class ChannelSettingsSelect(Select):
-    def __init__(self, channel_id: int):
-        options = [
-            discord.SelectOption(label="Name", description="Change the channel name", value="name", emoji="✏️"),
-            discord.SelectOption(label="Limit", description="Change the channel limit", value="limit", emoji="👥"),
-            discord.SelectOption(label="Status", description="Change the channel status", value="status", emoji="💬"),
-            discord.SelectOption(label="Game", description="Change name to the game you're playing", value="game", emoji="🎮"),
-            discord.SelectOption(label="LFM", description="Post a message to the LFM channel", value="lfm", emoji="🔍"),
-            discord.SelectOption(label="Bitrate", description="Change the channel bitrate", value="bitrate", emoji="🔊"),
-            discord.SelectOption(label="Region", description="Change the channel voice region", value="region", emoji="🌍"),
-            discord.SelectOption(label="Text", description="Create a temporary text channel", value="text", emoji="#️⃣"),
-            discord.SelectOption(label="NSFW", description="Set your temporary channel to NSFW", value="nsfw", emoji="⚠️"),
-            discord.SelectOption(label="Claim", description="Claim ownership of the channel", value="claim", emoji="👑"),
-        ]
-        super().__init__(
-            placeholder="Change channel settings",
-            min_values=1,
-            max_values=1,
-            options=options,
-            custom_id=f"vc_settings_{channel_id}"
-        )
-        self.channel_id = channel_id
-
-    async def callback(self, interaction: discord.Interaction):
-        channel = interaction.guild.get_channel(self.channel_id)
-        if not channel or not isinstance(channel, discord.VoiceChannel):
-            return await interaction.response.send_message("Channel not found.", ephemeral=True)
-
-        data = temp_channels.get(self.channel_id)
-        choice = self.values[0]
-
-        # Claim is special
-        if choice == "claim":
-            if data and data["owner_id"] != interaction.user.id:
-                owner_still_here = any(m.id == data["owner_id"] for m in channel.members)
-                if not owner_still_here:
-                    data["owner_id"] = interaction.user.id
-                    temp_channels[self.channel_id] = data
-                    return await interaction.response.send_message("✅ You claimed ownership of this channel!", ephemeral=True)
-            return await interaction.response.send_message("You cannot claim this channel right now.", ephemeral=True)
-
-        if not data or data["owner_id"] != interaction.user.id:
-            return await interaction.response.send_message("Only the channel owner can use this.", ephemeral=True)
-
-        if choice == "name":
-            return await interaction.response.send_modal(NameModal(channel))
-        if choice == "limit":
-            return await interaction.response.send_modal(LimitModal(channel))
-        if choice == "bitrate":
-            return await interaction.response.send_modal(BitrateModal(channel))
-
-        if choice == "text":
-            overwrites = {
-                interaction.guild.default_role: discord.PermissionOverwrite(view_channel=False),
-                interaction.user: discord.PermissionOverwrite(view_channel=True, send_messages=True, read_message_history=True),
-                interaction.guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True, manage_channels=True)
-            }
-            text_ch = await interaction.guild.create_text_channel(
-                name=f"text-{channel.name}",
-                category=channel.category,
-                overwrites=overwrites
-            )
-            data["text_channel_id"] = text_ch.id
-            temp_channels[self.channel_id] = data
-            return await interaction.response.send_message(f"✅ Temporary text channel created: {text_ch.mention}", ephemeral=True)
-
-        if choice == "nsfw":
-            await channel.edit(nsfw=not channel.nsfw)
-            return await interaction.response.send_message(f"✅ Channel NSFW set to **{channel.nsfw}**", ephemeral=True)
-
-        await interaction.response.send_message(f"**{choice}** is not fully implemented yet.", ephemeral=True)
-
-
-class ChannelPermissionsSelect(Select):
-    def __init__(self, channel_id: int):
-        options = [
-            discord.SelectOption(label="Lock", description="Lock the channel", value="lock", emoji="🔒"),
-            discord.SelectOption(label="Unlock", description="Unlock the channel", value="unlock", emoji="🔓"),
-            discord.SelectOption(label="Permit", description="Permit users/roles to access the channel", value="permit", emoji="✅"),
-            discord.SelectOption(label="Reject", description="Reject/kick users/roles", value="reject", emoji="❌"),
-            discord.SelectOption(label="Invite", description="Invite a user to access the channel", value="invite", emoji="➕"),
-            discord.SelectOption(label="Ghost", description="Make your channel invisible", value="ghost", emoji="👻"),
-            discord.SelectOption(label="Unghost", description="Make your channel visible", value="unghost", emoji="👁️"),
-            discord.SelectOption(label="Transfer", description="Transfer ownership to another user", value="transfer", emoji="👑"),
-        ]
-        super().__init__(
-            placeholder="Change channel permissions",
-            min_values=1,
-            max_values=1,
-            options=options,
-            custom_id=f"vc_permissions_{channel_id}"
-        )
-        self.channel_id = channel_id
-
-    async def callback(self, interaction: discord.Interaction):
-        channel = interaction.guild.get_channel(self.channel_id)
-        if not channel or not isinstance(channel, discord.VoiceChannel):
-            return await interaction.response.send_message("Channel not found.", ephemeral=True)
-
-        data = temp_channels.get(self.channel_id)
-        if not data or data["owner_id"] != interaction.user.id:
-            return await interaction.response.send_message("Only the channel owner can use this.", ephemeral=True)
-
-        choice = self.values[0]
-
-        if choice == "lock":
-            await channel.set_permissions(interaction.guild.default_role, connect=False)
-            return await interaction.response.send_message("🔒 Channel locked.", ephemeral=True)
-
-        if choice == "unlock":
-            await channel.set_permissions(interaction.guild.default_role, connect=True)
-            return await interaction.response.send_message("🔓 Channel unlocked.", ephemeral=True)
-
-        if choice == "ghost":
-            await channel.set_permissions(interaction.guild.default_role, view_channel=False)
-            return await interaction.response.send_message("👻 Channel is now invisible (ghosted).", ephemeral=True)
-
-        if choice == "unghost":
-            await channel.set_permissions(interaction.guild.default_role, view_channel=True)
-            return await interaction.response.send_message("👁️ Channel is now visible.", ephemeral=True)
-
-        await interaction.response.send_message(f"**{choice}** requires a user/role selector – coming next.", ephemeral=True)
-
-
-class TempVCControlView(View):
-    def __init__(self, channel_id: int):
-        super().__init__(timeout=None)
-        self.add_item(ChannelSettingsSelect(channel_id))
-        self.add_item(ChannelPermissionsSelect(channel_id))
 
 
 # ==================== TICKET SELECT MENU ====================
@@ -547,19 +379,84 @@ class TicketView(View):
 class IndexSelect(Select):
     def __init__(self):
         options = [
-            discord.SelectOption(label="Gold Base", description=INDEX_PRICES["gold"], value="gold", emoji="🟡"),
-            discord.SelectOption(label="Diamond Base", description=INDEX_PRICES["diamond"], value="diamond", emoji="💠"),
-            discord.SelectOption(label="Rainbow Base", description=INDEX_PRICES["rainbow"], value="rainbow", emoji="🌈"),
-            discord.SelectOption(label="Galaxy Base", description=INDEX_PRICES["galaxy"], value="galaxy", emoji="🌌"),
-            discord.SelectOption(label="Candy Base", description=INDEX_PRICES["candy"], value="candy", emoji="🍬"),
-            discord.SelectOption(label="Lava Base", description=INDEX_PRICES["lava"], value="lava", emoji="🌋"),
-            discord.SelectOption(label="Radioactive Base", description=INDEX_PRICES["radioactive"], value="radioactive", emoji="☢️"),
-            discord.SelectOption(label="YingYang Base", description=INDEX_PRICES["yingyang"], value="yingyang", emoji="☯️"),
-            discord.SelectOption(label="Cursed Base", description=INDEX_PRICES["cursed"], value="cursed", emoji="☠️"),
-            discord.SelectOption(label="Divine Base", description=INDEX_PRICES["divine"], value="divine", emoji="✨"),
-            discord.SelectOption(label="Cyber Base", description=INDEX_PRICES["cyber"], value="cyber", emoji="🤖"),
-            discord.SelectOption(label="Phantom Base", description=INDEX_PRICES["phantom"], value="phantom", emoji="👻"),
-            discord.SelectOption(label="Crystal Base", description=INDEX_PRICES["crystal"], value="crystal", emoji="💎"),
+            discord.SelectOption(
+                label="Gold Base",
+                description=INDEX_PRICES["gold"],
+                value="gold",
+                emoji="🟡"
+            ),
+            discord.SelectOption(
+                label="Diamond Base",
+                description=INDEX_PRICES["diamond"],
+                value="diamond",
+                emoji="💠"
+            ),
+            discord.SelectOption(
+                label="Rainbow Base",
+                description=INDEX_PRICES["rainbow"],
+                value="rainbow",
+                emoji="🌈"
+            ),
+            discord.SelectOption(
+                label="Galaxy Base",
+                description=INDEX_PRICES["galaxy"],
+                value="galaxy",
+                emoji="🌌"
+            ),
+            discord.SelectOption(
+                label="Candy Base",
+                description=INDEX_PRICES["candy"],
+                value="candy",
+                emoji="🍬"
+            ),
+            discord.SelectOption(
+                label="Lava Base",
+                description=INDEX_PRICES["lava"],
+                value="lava",
+                emoji="🌋"
+            ),
+            discord.SelectOption(
+                label="Radioactive Base",
+                description=INDEX_PRICES["radioactive"],
+                value="radioactive",
+                emoji="☢️"
+            ),
+            discord.SelectOption(
+                label="YingYang Base",
+                description=INDEX_PRICES["yingyang"],
+                value="yingyang",
+                emoji="☯️"
+            ),
+            discord.SelectOption(
+                label="Cursed Base",
+                description=INDEX_PRICES["cursed"],
+                value="cursed",
+                emoji="☠️"
+            ),
+            discord.SelectOption(
+                label="Divine Base",
+                description=INDEX_PRICES["divine"],
+                value="divine",
+                emoji="✨"
+            ),
+            discord.SelectOption(
+                label="Cyber Base",
+                description=INDEX_PRICES["cyber"],
+                value="cyber",
+                emoji="🤖"
+            ),
+            discord.SelectOption(
+                label="Phantom Base",
+                description=INDEX_PRICES["phantom"],
+                value="phantom",
+                emoji="👻"
+            ),
+            discord.SelectOption(
+                label="Crystal Base",
+                description=INDEX_PRICES["crystal"],
+                value="crystal",
+                emoji="💎"
+            ),
         ]
         super().__init__(
             placeholder="Select a base to index...",
@@ -603,6 +500,7 @@ class TicketButtons(View):
 
     @discord.ui.button(label="Close", style=discord.ButtonStyle.danger, emoji="🔒", custom_id="ticket_close")
     async def close_button(self, interaction: discord.Interaction, button: Button):
+        # Ticket opener OR staff can close
         if not (is_ticket_opener(interaction.channel, interaction.user) or has_staff_permission(interaction.user)):
             return await interaction.response.send_message("Only staff or the ticket owner can close tickets.", ephemeral=True)
 
@@ -620,15 +518,20 @@ async def create_ticket(interaction: discord.Interaction, ticket_type: str):
     guild = interaction.guild
     member = interaction.user
 
+    # Prevent multiple open tickets
     for channel in guild.text_channels:
         if channel.topic == f"ticket-{member.id}":
-            return await interaction.followup.send(f"You already have an open ticket: {channel.mention}", ephemeral=True)
+            return await interaction.followup.send(
+                f"You already have an open ticket: {channel.mention}", ephemeral=True
+            )
 
     config["ticketCounter"] += 1
     save_config()
 
+    # Channel name = username
     channel_name = clean_channel_name(member.name)
 
+    # Different category for each ticket type
     if ticket_type == "support":
         category_id = 1545526574592303134
     elif ticket_type == "scammer":
@@ -637,9 +540,10 @@ async def create_ticket(interaction: discord.Interaction, ticket_type: str):
         category_id = 1545526714573004831
     elif ticket_type == "ads":
         category_id = 1545526574592303134
-    else:
+    else:  # rolls
         category_id = 1545526574592303134
 
+    # Choose which roles can see this ticket
     if ticket_type == "reward":
         allowed_roles = REWARD_STAFF_ROLES
     elif ticket_type == "ads":
@@ -648,20 +552,34 @@ async def create_ticket(interaction: discord.Interaction, ticket_type: str):
         allowed_roles = ROLLS_STAFF_ROLES
     elif ticket_type == "support":
         allowed_roles = ALL_STAFF_ROLES + SUPPORT_ONLY_ROLES
-    else:
+    else:  # scammer/report
         allowed_roles = ALL_STAFF_ROLES
 
     overwrites = {
         guild.default_role: discord.PermissionOverwrite(view_channel=False),
-        member: discord.PermissionOverwrite(view_channel=True, send_messages=True, attach_files=True, read_message_history=True),
-        guild.me: discord.PermissionOverwrite(view_channel=True, send_messages=True, manage_channels=True, manage_messages=True)
+        member: discord.PermissionOverwrite(
+            view_channel=True,
+            send_messages=True,
+            attach_files=True,
+            read_message_history=True
+        ),
+        guild.me: discord.PermissionOverwrite(
+            view_channel=True,
+            send_messages=True,
+            manage_channels=True,
+            manage_messages=True
+        )
     }
 
     for role_id in allowed_roles:
         role = guild.get_role(int(role_id))
         if role:
             overwrites[role] = discord.PermissionOverwrite(
-                view_channel=True, send_messages=True, attach_files=True, read_message_history=True, manage_messages=True
+                view_channel=True,
+                send_messages=True,
+                attach_files=True,
+                read_message_history=True,
+                manage_messages=True
             )
 
     category = guild.get_channel(category_id)
@@ -672,8 +590,6 @@ async def create_ticket(interaction: discord.Interaction, ticket_type: str):
         topic=f"ticket-{member.id}",
         overwrites=overwrites
     )
-
-    ping = get_staff_mentions(ticket_type)
 
     if ticket_type == "support":
         embed = discord.Embed(
@@ -714,16 +630,500 @@ async def create_ticket(interaction: discord.Interaction, ticket_type: str):
     elif ticket_type == "ads":
         embed = discord.Embed(
             title=f"Ticket opened by {member.name}",
-            description="**📢 Promote Your Server!**\n\nPlease provide details about your ad request.",
+            description=(
+                "**📢 Promote Your Server!**\n\n"
+                "**Package 1:** 2 Days | 1 Ping — 1x Tang Tang Keletang / Equivalent Value\n"
+                "**Package 2:** 3 Days | 2 Pings — 1x Garama / Equivalent Value\n"
+                "**Package 3:** 7 Days | 4 Pings — 1x La Secret / Garama / Equivalent Value\n"
+                "**Package 4:** 12 Days | 6 Pings — 1x Cerberus / 4 Garamas / Equivalent Value\n\n"
+                "Please tell us which package you want and wait for staff."
+            ),
             color=0xED4245
         )
     else:  # rolls
         embed = discord.Embed(
             title=f"Ticket opened by {member.name}",
-            description="**Pay for Rolls**\n\nTell us which role you are paying for and what you are offering.",
+            description=(
+                "**💰 Pay for Rolls**\n\n"
+                "Thank you for opening a Pay for Rolls ticket.\n\n"
+                "Please tell us:\n"
+                "• How many rolls you want\n"
+                "• What you are offering as payment\n\n"
+                "A Founder / Owner / Co Owner will assist you shortly."
+            ),
+            color=0xED4245
+        )
+
+    await channel.send(
+        content=get_staff_mentions(ticket_type),
+        embed=embed,
+        view=TicketButtons()
+    )
+
+    await interaction.followup.send(f"Ticket created: {channel.mention}", ephemeral=True)
+
+
+# ==================== CREATE INDEX TICKET ====================
+async def create_index_ticket(interaction: discord.Interaction, base_key: str):
+    guild = interaction.guild
+    member = interaction.user
+
+    # Prevent multiple open tickets
+    for channel in guild.text_channels:
+        if channel.topic == f"ticket-{member.id}":
+            return await interaction.followup.send(
+                f"You already have an open ticket: {channel.mention}", ephemeral=True
+            )
+
+    if base_key not in INDEX_ROLES:
+        return await interaction.followup.send("Invalid base selected.", ephemeral=True)
+
+    config["ticketCounter"] += 1
+    save_config()
+
+    display_name = INDEX_DISPLAY.get(base_key, base_key.title())
+    price = INDEX_PRICES.get(base_key, "Ask staff")
+    role_id = INDEX_ROLES[base_key]
+    emoji = INDEX_EMOJIS.get(base_key, "📦")
+
+    # Channel name = the index they are wanting
+    channel_name = clean_channel_name(display_name)
+
+    overwrites = {
+        guild.default_role: discord.PermissionOverwrite(view_channel=False),
+        member: discord.PermissionOverwrite(
+            view_channel=True,
+            send_messages=True,
+            attach_files=True,
+            read_message_history=True
+        ),
+        guild.me: discord.PermissionOverwrite(
+            view_channel=True,
+            send_messages=True,
+            manage_channels=True,
+            manage_messages=True
+        )
+    }
+
+    # Allow all staff + the specific index role
+    for role_id_str in ALL_STAFF_ROLES + [role_id]:
+        role = guild.get_role(int(role_id_str))
+        if role:
+            overwrites[role] = discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                attach_files=True,
+                read_message_history=True,
+                manage_messages=True
+            )
+
+    category = guild.get_channel(INDEX_CATEGORY_ID)
+
+    channel = await guild.create_text_channel(
+        name=channel_name,
+        category=category,
+        topic=f"ticket-{member.id}",
+        overwrites=overwrites
+    )
+
+    embed = discord.Embed(
+        title=f"{emoji} Index Request: {display_name}",
+        description=(
+            f"**Ticket opened by {member.mention}**\n\n"
+            f"**Base:** {display_name}\n"
+            f"**Price:** {price}\n\n"
+            "**Index Base Rules**\n"
+            "1. PLEASE HAVE AN EMPTY BASE\n"
+            "2. IF YOU FAIL TO RETURN A BRAINROT THE INDEX WILL BE CANCELED\n"
+            "3. HIGH VALUE BRAINROTS WILL BE GIVEN ONE AT A TIME\n\n"
+            "We only take Garam's+ so please do not waste our time with lowballs.\n\n"
+            "Please wait for the indexer to assist you."
+        ),
+        color=0xED4245
+    )
+
+    await channel.send(
+        content=f"<@&{role_id}>",
+        embed=embed,
+        view=TicketButtons()
+    )
+
+    await interaction.followup.send(f"Index ticket created: {channel.mention}", ephemeral=True)
+
+
+
+# ==================== MIDDLEMAN SELECT + MODAL ====================
+class MiddlemanModal(discord.ui.Modal, title="MiddleMan Request"):
+    def __init__(self, trade_type: str):
+        super().__init__()
+        self.trade_type = trade_type
+
+        self.trade_with = discord.ui.TextInput(
+            label="Who is the trade with?",
+            placeholder="Ex: @mari",
+            required=True,
+            max_length=100
+        )
+        self.trade_details = discord.ui.TextInput(
+            label="What is the trade?",
+            placeholder="Ex: Dragon for garamas",
+            required=True,
+            max_length=200
+        )
+        self.tip = discord.ui.TextInput(
+            label="What is the tip?",
+            placeholder="Please tip 10% of the trade or it might get closed.",
+            required=True,
+            max_length=100
+        )
+        self.add_item(self.trade_with)
+        self.add_item(self.trade_details)
+        self.add_item(self.tip)
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await create_middleman_ticket(
+            interaction,
+            self.trade_type,
+            self.trade_with.value,
+            self.trade_details.value,
+            self.tip.value
+        )
+
+
+class MiddlemanSelect(Select):
+    def __init__(self):
+        options = [
+            discord.SelectOption(
+                label="Cross Trades",
+                description="Cross trade middleman service",
+                value="cross",
+                emoji="🟡"
+            ),
+            discord.SelectOption(
+                label="OG Trades",
+                description="OG trade middleman service",
+                value="og",
+                emoji="🥇"
+            ),
+            discord.SelectOption(
+                label="1B+ Trades",
+                description="1B+ value middleman service",
+                value="1b",
+                emoji="🥈"
+            ),
+            discord.SelectOption(
+                label="250M-1B Trades",
+                description="250M to 1B middleman service",
+                value="250m",
+                emoji="🥉"
+            ),
+            discord.SelectOption(
+                label="0-250M Trades",
+                description="0 to 250M middleman service",
+                value="0-250m",
+                emoji="✅"
+            ),
+        ]
+        super().__init__(
+            placeholder="Select an option",
+            min_values=1,
+            max_values=1,
+            options=options,
+            custom_id="middleman_select"
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.send_modal(MiddlemanModal(self.values[0]))
+
+
+class MiddlemanView(View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(MiddlemanSelect())
+
+
+async def create_middleman_ticket(interaction: discord.Interaction, trade_type: str, trade_with: str, trade_details: str, tip: str):
+    guild = interaction.guild
+    member = interaction.user
+
+    # Prevent multiple open tickets
+    for channel in guild.text_channels:
+        if channel.topic == f"ticket-{member.id}":
+            return await interaction.followup.send(
+                f"You already have an open ticket: {channel.mention}", ephemeral=True
+            )
+
+    if trade_type not in MM_ROLES:
+        return await interaction.followup.send("Invalid trade type selected.", ephemeral=True)
+
+    config["ticketCounter"] += 1
+    save_config()
+
+    display_name = MM_DISPLAY.get(trade_type, trade_type)
+    role_id = MM_ROLES[trade_type]
+    emoji = MM_EMOJIS.get(trade_type, "🤝")
+
+    # Channel name = the option they picked
+    channel_name = clean_channel_name(display_name)
+
+    overwrites = {
+        guild.default_role: discord.PermissionOverwrite(view_channel=False),
+        member: discord.PermissionOverwrite(
+            view_channel=True,
+            send_messages=True,
+            attach_files=True,
+            read_message_history=True
+        ),
+        guild.me: discord.PermissionOverwrite(
+            view_channel=True,
+            send_messages=True,
+            manage_channels=True,
+            manage_messages=True
+        )
+    }
+
+    # Allow all staff + only the specific middleman role for this ticket type
+    for role_id_str in ALL_STAFF_ROLES + [role_id]:
+        role = guild.get_role(int(role_id_str))
+        if role:
+            overwrites[role] = discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                attach_files=True,
+                read_message_history=True,
+                manage_messages=True
+            )
+
+    category = guild.get_channel(MM_CATEGORY_ID)
+
+    channel = await guild.create_text_channel(
+        name=channel_name,
+        category=category,
+        topic=f"ticket-{member.id}",
+        overwrites=overwrites
+    )
+
+    embed = discord.Embed(
+        title=f"{emoji} MiddleMan Request: {display_name}",
+        description=(
+            f"**Ticket opened by {member.mention}**\n\n"
+            f"**Service:** {display_name}\n"
+            f"**Trade with:** {trade_with}\n"
+            f"**Trade:** {trade_details}\n"
+            f"**Tip:** {tip}\n\n"
+            "A middleman will assist you shortly.\n"
+            "Please wait and do not ping staff repeatedly."
+        ),
+        color=0xED4245
+    )
+
+    # Only ping the specific middleman role for this ticket type
+    await channel.send(
+        content=f"<@&{role_id}>",
+        embed=embed,
+        view=TicketButtons()
+    )
+
+    await interaction.followup.send(f"MiddleMan ticket created: {channel.mention}", ephemeral=True)
+
+
+
+# ==================== STAFF PANEL SELECT ====================
+class StaffPanelSelect(Select):
+    def __init__(self):
+        options = [
+            discord.SelectOption(
+                label="Staff Application",
+                description="Apply for a staff position on the team",
+                value="recruitment",
+                emoji="📝"
+            ),
+            discord.SelectOption(
+                label="Pay for Rolls",
+                description="Purchase secure rolls for staff",
+                value="payrolls",
+                emoji="🎟️"
+            ),
+            discord.SelectOption(
+                label="Index Provider",
+                description="Apply to become an index provider",
+                value="indexprovider",
+                emoji="📦"
+            ),
+            discord.SelectOption(
+                label="Middleman Application",
+                description="Apply to become a middleman",
+                value="mmapplication",
+                emoji="🤝"
+            ),
+        ]
+        super().__init__(
+            placeholder="Choose a staff option...",
+            min_values=1,
+            max_values=1,
+            options=options,
+            custom_id="staff_panel_select"
+        )
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        await create_staff_ticket(interaction, self.values[0])
+
+
+class StaffPanelView(View):
+    def __init__(self):
+        super().__init__(timeout=None)
+        self.add_item(StaffPanelSelect())
+
+
+async def create_staff_ticket(interaction: discord.Interaction, ticket_type: str):
+    guild = interaction.guild
+    member = interaction.user
+
+    for channel in guild.text_channels:
+        if channel.topic == f"ticket-{member.id}":
+            return await interaction.followup.send(
+                f"You already have an open ticket: {channel.mention}", ephemeral=True
+            )
+
+    category_id = STAFF_CATEGORY_IDS.get(ticket_type)
+    if not category_id:
+        return await interaction.followup.send(
+            "Staff category is not set for this option. Please contact an administrator.", ephemeral=True
+        )
+
+    config["ticketCounter"] += 1
+    save_config()
+
+    # Channel name = username (same as other tickets)
+    channel_name = clean_channel_name(member.name)
+
+    overwrites = {
+        guild.default_role: discord.PermissionOverwrite(view_channel=False),
+        member: discord.PermissionOverwrite(
+            view_channel=True,
+            send_messages=True,
+            attach_files=True,
+            read_message_history=True
+        ),
+        guild.me: discord.PermissionOverwrite(
+            view_channel=True,
+            send_messages=True,
+            manage_channels=True,
+            manage_messages=True
+        )
+    }
+
+    for role_id_str in STAFF_PANEL_ROLES:
+        role = guild.get_role(int(role_id_str))
+        if role:
+            overwrites[role] = discord.PermissionOverwrite(
+                view_channel=True,
+                send_messages=True,
+                attach_files=True,
+                read_message_history=True,
+                manage_messages=True
+            )
+
+    category = guild.get_channel(category_id)
+    channel = await guild.create_text_channel(
+        name=channel_name,
+        category=category,
+        topic=f"ticket-{member.id}",
+        overwrites=overwrites
+    )
+
+    # Pings:
+    # - Pay for Rolls: Creator + Owner only
+    # - Other staff tickets: Creator, Owner, Co Owner, Overlord
+    if ticket_type == "payrolls":
+        ping = "<@&1545842045258825809> <@&1512494871171043543> <@&1546192012435390515>"  # Creator + Owner + Overlord
+    else:
+        ping = " ".join([
+            "<@&1545842045258825809>",  # Creator
+            "<@&1512494871171043543>",  # Owner
+            "<@&1544803993480466563>",  # Co Owner
+            "<@&1546192012435390515>",  # Overlord
+        ])
+
+    if ticket_type == "recruitment":
+        embed = discord.Embed(
+            title="📝 Staff Application",
+            description=(
+                f"Welcome {member.mention}! Thanks for applying to join the team.\n\n"
+                "Please answer **every question** below honestly and professionally. "
+                "A recruiter will review your application shortly.\n\n"
+                "**Application Form**\n"
+                "```\n"
+                "1. Discord Username:\n"
+                "2. Age:\n"
+                "3. Are you fluent in English?\n"
+                "4. How many days per week are you active?\n"
+                "5. How many hours per day are you usually online?\n"
+                "6. How would you handle a toxic member breaking the rules?\n"
+                "7. Do you have any previous moderation or staff experience?\n"
+                "   (If yes, please explain)\n"
+                "8. Why do you want to become a staff member?\n"
+                "9. Anything else you would like us to know?\n"
+                "```\n\n"
+                "Copy the form, fill it out, and send it in this ticket."
+            ),
+            color=0x000000
+        )
+        embed.set_footer(text="Staff Recruitment")
+    elif ticket_type == "payrolls":
+        embed = discord.Embed(
+            title="🎟️ Pay for Rolls",
+            description=(
+                f"Ticket opened by {member.mention}\n\n"
+                "**Staff Pay Rates**\n"
+                "```\n"
+                "Test Mod          — 2 Garams\n"
+                "Moderator         — 3 Garams\n"
+                "Senior Moderator  — 4 Garams\n"
+                "Head Staff        — 5 Garams\n"
+                "Admin             — 7 Garams OR 1 Colored Garam\n"
+                "Manager           — 2 Colored Garams\n"
+                "Head Manager      — 3 Colored Garams\n"
+                "```\n\n"
+                "Tell us which role you are paying for and what you are offering. "
+                "A Creator / Owner will assist you shortly."
+            ),
             color=0x000000
         )
         embed.set_footer(text="Pay for Rolls")
+    elif ticket_type == "indexprovider":
+        embed = discord.Embed(
+            title="📦 Index Provider Application",
+            description=(
+                f"Welcome {member.mention}!\n\n"
+                "Thanks for your interest in becoming an **Index Provider**.\n\n"
+                "**Payment & Collat:** 1+ Drag\n\n"
+                "Please tell us:\n"
+                "• Why you want to be an index provider\n"
+                "• How active you are\n"
+                "• Any relevant experience\n\n"
+                "Staff will review your request soon."
+            ),
+            color=0x000000
+        )
+        embed.set_footer(text="Index Provider")
+    else:  # mmapplication
+        embed = discord.Embed(
+            title="🤝 Middleman Application",
+            description=(
+                f"Welcome {member.mention}!\n\n"
+                "Thanks for applying to become a **Middleman**.\n\n"
+                "**Payment & Collat:** 1+ Drag\n\n"
+                "Please tell us:\n"
+                "• Why you want to middleman\n"
+                "• How often you can be online\n"
+                "• Any past middleman experience\n\n"
+                "Staff will get back to you shortly."
+            ),
+            color=0x000000
+        )
+        embed.set_footer(text="Middleman Application")
 
     await channel.send(content=ping, embed=embed, view=TicketButtons())
     await interaction.followup.send(f"Ticket created: {channel.mention}", ephemeral=True)
@@ -731,15 +1131,18 @@ async def create_ticket(interaction: discord.Interaction, ticket_type: str):
 
 # ==================== CLOSE TICKET ====================
 async def close_ticket(channel: discord.TextChannel, closer: discord.Member) -> bool:
+    """Close ticket, send transcript, then permanently delete the channel."""
     channel_name = channel.name
     channel_id = channel.id
     guild = channel.guild
 
+    # Mark as closed so it can't be treated as open anymore
     try:
         await channel.edit(topic="closed", reason="Ticket closing")
     except:
         pass
 
+    # Snapshot transcript (best effort — never block delete)
     try:
         messages = [msg async for msg in channel.history(limit=50, oldest_first=True)]
         transcript = "---- TICKET LOGS ----\n\n"
@@ -771,12 +1174,15 @@ async def close_ticket(channel: discord.TextChannel, closer: discord.Member) -> 
     except Exception as e:
         print(f"Transcript error: {e}")
 
+    # Always try to delete — up to 5 attempts
     for attempt in range(5):
         try:
             ch = guild.get_channel(channel_id)
             if ch is None:
+                print(f"Channel {channel_name} already gone")
                 return True
             await ch.delete(reason=f"Ticket closed by {closer}")
+            print(f"Deleted ticket channel: {channel_name} ({channel_id})")
             return True
         except discord.NotFound:
             return True
@@ -803,94 +1209,9 @@ async def on_ready():
     bot.add_view(TicketView())
     bot.add_view(TicketButtons())
     bot.add_view(IndexView())
+    bot.add_view(MiddlemanView())
+    bot.add_view(StaffPanelView())
 
-
-@bot.event
-async def on_voice_state_update(member: discord.Member, before: discord.VoiceState, after: discord.VoiceState):
-    if member.bot:
-        return
-
-    # ========== JOIN TO CREATE ==========
-    if after.channel and after.channel.id == JOIN_TO_CREATE_CHANNEL_ID:
-        try:
-            category = member.guild.get_channel(TEMP_VC_CATEGORY_ID)
-            overwrites = {
-                member.guild.default_role: discord.PermissionOverwrite(view_channel=True, connect=True),
-                member: discord.PermissionOverwrite(
-                    view_channel=True, connect=True, speak=True, stream=True,
-                    manage_channels=True, move_members=True, mute_members=True, deafen_members=True
-                ),
-                member.guild.me: discord.PermissionOverwrite(
-                    view_channel=True, connect=True, manage_channels=True, move_members=True
-                )
-            }
-
-            new_channel = await member.guild.create_voice_channel(
-                name=f"{member.display_name}'s Channel",
-                category=category,
-                overwrites=overwrites
-            )
-
-            temp_channels[new_channel.id] = {"owner_id": member.id, "text_channel_id": None}
-
-            await member.move_to(new_channel)
-
-            # Send control panel
-            embed = discord.Embed(
-                title="⚙️ Welcome to your own temporary voice channel",
-                description=(
-                    "Control your channel using the menus below\n"
-                    "• Use the dropdowns to manage settings and permissions\n"
-                    "• Alternatively use `/voice` commands\n\n"
-                    "Create a **user profile** on the dashboard, then use **Load Settings** below to apply your saved settings to this channel.\n"
-                    "**Gold options** require VoiceMaster+ or voting"
-                ),
-                color=0x2b2d31
-            )
-            view = TempVCControlView(new_channel.id)
-            await new_channel.send(embed=embed, view=view)
-
-        except Exception as e:
-            print(f"Error creating temp VC: {e}")
-
-    # ========== DELETE WHEN EVERYONE LEAVES ==========
-    if before.channel and before.channel.id in temp_channels:
-        # Small delay so Discord updates the member list
-        await asyncio.sleep(0.4)
-
-        channel = member.guild.get_channel(before.channel.id)
-
-        # Channel already gone
-        if channel is None:
-            if before.channel.id in temp_channels:
-                del temp_channels[before.channel.id]
-            return
-
-        # Count only real users (ignore bots)
-        human_members = [m for m in channel.members if not m.bot]
-
-        if len(human_members) == 0:
-            data = temp_channels.get(channel.id)
-
-            # Delete linked text channel if it exists
-            if data and data.get("text_channel_id"):
-                text_ch = member.guild.get_channel(data["text_channel_id"])
-                if text_ch:
-                    try:
-                        await text_ch.delete(reason="Linked text channel - temp VC empty")
-                    except:
-                        pass
-
-            # Delete the voice channel
-            try:
-                await channel.delete(reason="Temporary VC empty - everyone left")
-                print(f"Deleted empty temp VC: {channel.name}")
-            except Exception as e:
-                print(f"Failed to delete temp VC: {e}")
-
-            # Remove from tracking
-            if channel.id in temp_channels:
-                del temp_channels[channel.id]
 
 
 @bot.event
@@ -942,7 +1263,6 @@ async def on_raw_reaction_remove(payload: discord.RawReactionActionEvent):
     except Exception as e:
         print(f"Could not remove role {role.name}: {e}")
 
-
 @bot.event
 async def on_message(message: discord.Message):
     if message.author.bot:
@@ -958,9 +1278,12 @@ async def on_message(message: discord.Message):
 
 
 # ==================== COMMANDS ====================
+
+
 @bot.command(name="invitepanel")
 @commands.has_permissions(administrator=True)
 async def invitepanel_command(ctx: commands.Context):
+    """Posts the invite rewards panel to the invite channel"""
     channel = bot.get_channel(1546243778031919184)
     if channel is None:
         try:
@@ -998,6 +1321,7 @@ async def invitepanel_command(ctx: commands.Context):
 @bot.command(name="rolepanel")
 @commands.has_permissions(administrator=True)
 async def rolepanel_command(ctx: commands.Context):
+    """Posts the LEOS Middleman reaction role panel"""
     embed = discord.Embed(
         title="🧠 LEOS MIDDLEMAN ROLES :",
         description=(
@@ -1047,16 +1371,28 @@ async def indexpanel_command(ctx: commands.Context):
         title="Request a Indexing Service",
         description=(
             "Request an indexing service by selecting one of the available bases below.\n\n"
-            "🟡 **Gold Base**\n💠 **Diamond Base**\n🌈 **Rainbow Base**\n🌌 **Galaxy Base**\n"
-            "🍬 **Candy Base**\n🌋 **Lava Base**\n☢️ **Radioactive Base**\n☯️ **YingYang Base**\n"
-            "☠️ **Cursed Base**\n✨ **Divine Base**\n🤖 **Cyber Base**\n👻 **Phantom Base**\n💎 **Crystal Base**\n\n"
+            "🟡 **Gold Base**\n"
+            "💠 **Diamond Base**\n"
+            "🌈 **Rainbow Base**\n"
+            "🌌 **Galaxy Base**\n"
+            "🍬 **Candy Base**\n"
+            "🌋 **Lava Base**\n"
+            "☢️ **Radioactive Base**\n"
+            "☯️ **YingYang Base**\n"
+            "☠️ **Cursed Base**\n"
+            "✨ **Divine Base**\n"
+            "🤖 **Cyber Base**\n"
+            "👻 **Phantom Base**\n"
+            "💎 **Crystal Base**\n\n"
             "----------------------------------------\n"
-            "**Index Base Rules**\nPLEASE FOLLOW THESE RULES DURING INDEXING\n\n"
+            "**Index Base Rules**\n"
+            "PLEASE FOLLOW THESE RULES DURING INDEXING\n\n"
             "1. PLEASE HAVE AN EMPTY BASE\n"
             "2. IF YOU FAIL TO RETURN A BRAINROT THE INDEX WILL BE CANCELED\n"
             "3. HIGH VALUE BRAINROTS WILL BE GIVEN ONE AT A TIME\n\n"
             "PLEASE MAKE A TICKET USING THE SELECT MENU BELOW TO PURCHASE\n\n"
-            "**CHECK PRICES BELOW**\nWe only take Garam's+ so please do not waste our time with lowballs."
+            "**CHECK PRICES BELOW**\n"
+            "We only take Garam's+ so please do not waste our time with lowballs."
         ),
         color=0xED4245
     )
@@ -1067,9 +1403,13 @@ async def indexpanel_command(ctx: commands.Context):
         pass
 
 
+
+
+
 @bot.command(name="staffpanel")
 @commands.has_permissions(administrator=True)
 async def staffpanel_command(ctx: commands.Context):
+
     embed = discord.Embed(
         title="Staff & Team Opportunities",
         description=(
@@ -1084,7 +1424,7 @@ async def staffpanel_command(ctx: commands.Context):
         color=0x000000
     )
     embed.set_footer(text="Select an option to get started")
-    await ctx.send(embed=embed)
+    await ctx.send(embed=embed, view=StaffPanelView())
     try:
         await ctx.message.delete()
     except:
@@ -1093,6 +1433,7 @@ async def staffpanel_command(ctx: commands.Context):
 
 @bot.command(name="mmpanel")
 async def mmpanel_command(ctx: commands.Context):
+    # Admin Discord perm OR high staff roles
     if not (ctx.author.guild_permissions.administrator or has_high_staff_permission(ctx.author)):
         return await ctx.reply("❌ You do not have permission to use this command.", mention_author=False)
 
@@ -1100,13 +1441,16 @@ async def mmpanel_command(ctx: commands.Context):
         title="MiddleMan Services",
         description=(
             "Click bellow to choose one of these trade services\n\n"
-            "• **Cross Trades** 🟡\n• **OG Trades** 🥇\n• **1B+ Trades** 🥈\n"
-            "• **250M-1B Trades** 🥉\n• **0-250M Trades** ✅\n\n"
+            "• **Cross Trades** 🟡\n"
+            "• **OG Trades** 🥇\n"
+            "• **1B+ Trades** 🥈\n"
+            "• **250M-1B Trades** 🥉\n"
+            "• **0-250M Trades** ✅\n\n"
             "*Powered by Ticket King*"
         ),
         color=0xED4245
     )
-    await ctx.send(embed=embed)
+    await ctx.send(embed=embed, view=MiddlemanView())
     try:
         await ctx.message.delete()
     except:
@@ -1208,6 +1552,7 @@ async def close_command(ctx: commands.Context):
     if not ctx.channel.topic or not str(ctx.channel.topic).startswith("ticket-"):
         return await ctx.reply("❌ This command can only be used inside ticket channels.")
 
+    # Ticket opener OR staff can close
     if not (is_ticket_opener(ctx.channel, ctx.author) or has_staff_permission(ctx.author)):
         return await ctx.reply("❌ Only staff or the ticket owner can close tickets.", mention_author=False)
 
@@ -1221,6 +1566,7 @@ async def close_command(ctx: commands.Context):
 
 @bot.command(name="add")
 async def add_command(ctx: commands.Context, *, user_input: str = None):
+    """Add a user to the current ticket"""
     if not has_high_staff_permission(ctx.author):
         return await ctx.reply("❌ You do not have permission to use this command.", mention_author=False)
 
@@ -1251,6 +1597,7 @@ async def add_command(ctx: commands.Context, *, user_input: str = None):
 
 @bot.command(name="remove")
 async def remove_command(ctx: commands.Context, *, user_input: str = None):
+    """Remove a user from the current ticket"""
     if not has_high_staff_permission(ctx.author):
         return await ctx.reply("❌ You do not have permission to use this command.", mention_author=False)
 
@@ -1264,6 +1611,7 @@ async def remove_command(ctx: commands.Context, *, user_input: str = None):
     if not target:
         return await ctx.reply("❌ Could not find that user.")
 
+    # Don't allow removing the ticket opener
     if ctx.channel.topic and ctx.channel.topic.startswith("ticket-"):
         opener_id = ctx.channel.topic.replace("ticket-", "")
         if str(target.id) == opener_id:
@@ -1278,6 +1626,7 @@ async def remove_command(ctx: commands.Context, *, user_input: str = None):
         await ctx.reply(f"❌ Error: `{e}`")
 
 
+
 @bot.event
 async def on_command_error(ctx: commands.Context, error):
     if isinstance(error, commands.MissingPermissions):
@@ -1286,6 +1635,7 @@ async def on_command_error(ctx: commands.Context, error):
         return
     if isinstance(error, commands.MissingRequiredArgument):
         return await ctx.reply(f"❌ Missing argument: `{error.param.name}`", mention_author=False)
+    # Log unexpected errors
     try:
         await ctx.reply(f"❌ Error: `{error}`", mention_author=False)
     except:
