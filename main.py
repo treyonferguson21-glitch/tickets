@@ -19,6 +19,7 @@ intents.guilds = True
 bot = commands.Bot(command_prefix="+", intents=intents)
 
 # Extra roles that can see every ticket type EXCEPT Index and Middleman, and get pinged
+# Can +add only in Support, Report (scammer), and Middleman tickets
 EXTRA_PANEL_ROLES = [
     "1546912446004994108",  # supervisor
     "1545847662392119367",  # head manager
@@ -26,7 +27,7 @@ EXTRA_PANEL_ROLES = [
 ]
 
 # All roles that can see Support + Scammer tickets
-# (also used as base for Index/MM visibility — do NOT put EXTRA_PANEL_ROLES here)
+# NOTE: Index and MM tickets do NOT use this list — only the specific service role can see them
 ALL_STAFF_ROLES = [
     "1545842045258825809",  # Creator
     "1545482300601405590",  # Mari
@@ -64,7 +65,7 @@ REWARD_STAFF_ROLES = [
     "1547283985271365662",  # ticket manager
 ]
 
-# Only Creator + Owner can see Ads tickets
+# Ads ticket visibility
 ADS_STAFF_ROLES = [
     "1545842045258825809",  # Creator
     "1512494871171043543",  # owner
@@ -73,7 +74,20 @@ ADS_STAFF_ROLES = [
     "1547283985271365662",  # ticket manager
 ]
 
-# Only these roles can use +add and +remove
+# Administrator and above — can +add/+remove on all tickets EXCEPT Index and MM
+ADMIN_AND_ABOVE_ROLES = [
+    "1545842045258825809",  # Creator
+    "1545482300601405590",  # Mari
+    "1512494871171043543",  # owners
+    "1544803993480466563",  # co owners
+    "1534637036542365787",  # king
+    "1546192012435390515",  # overlord
+    "1512494871171043541",  # manager
+    "1545847662392119367",  # head manager
+    "1512494871171043540",  # Administrator
+]
+
+# Used for +mmpanel command permission (admin-level)
 HIGH_STAFF_ROLES = [
     "1545842045258825809",  # Creator
     "1545482300601405590",  # Mari
@@ -89,7 +103,7 @@ HIGH_STAFF_ROLES = [
     "1547283985271365662",  # ticket manager
 ]
 
-# Only Creator + Owner + Co Owner can see Pay for Rolls tickets
+# Pay for Rolls ticket visibility
 ROLLS_STAFF_ROLES = [
     "1545842045258825809",  # Creator
     "1512494871171043543",  # owner
@@ -98,6 +112,11 @@ ROLLS_STAFF_ROLES = [
     "1545847662392119367",  # head manager
     "1547283985271365662",  # ticket manager
 ]
+
+# Category IDs used to detect ticket type for +add/+remove
+SUPPORT_CATEGORY_ID = 1545526574592303134
+SCAMMER_CATEGORY_ID = 1546222360179376290
+REWARD_CATEGORY_ID = 1545526714573004831
 
 
 # ==================== MIDDLEMAN SERVICE ====================
@@ -309,11 +328,67 @@ def has_staff_permission(member: discord.Member):
 
 
 def has_high_staff_permission(member: discord.Member):
-    """For +add and +remove only"""
+    """For +mmpanel and similar admin-level commands"""
     try:
         return any(str(role.id) in HIGH_STAFF_ROLES for role in member.roles)
     except:
         return False
+
+
+def member_has_any_role(member: discord.Member, role_ids) -> bool:
+    try:
+        return any(str(role.id) in role_ids for role in member.roles)
+    except:
+        return False
+
+
+def get_ticket_kind(channel: discord.TextChannel) -> str:
+    """Return ticket kind based on category: support, scammer, reward, ads_or_rolls, index, mm, staff, unknown"""
+    if not channel or not channel.category_id:
+        return "unknown"
+    cat = channel.category_id
+    if cat == INDEX_CATEGORY_ID:
+        return "index"
+    if cat == MM_CATEGORY_ID:
+        return "mm"
+    if cat == SCAMMER_CATEGORY_ID:
+        return "scammer"
+    if cat == REWARD_CATEGORY_ID:
+        return "reward"
+    if cat == SUPPORT_CATEGORY_ID:
+        return "support"  # also used for ads + rolls
+    if cat in STAFF_CATEGORY_IDS.values():
+        return "staff"
+    return "unknown"
+
+
+def can_add_or_remove(member: discord.Member, channel: discord.TextChannel) -> bool:
+    """
+    +add / +remove rules:
+    - Index tickets: nobody (staff cannot manage members here)
+    - MM tickets: any MM role OR EXTRA_PANEL_ROLES (supervisor / head manager / ticket manager)
+    - Support + Scammer (report): EXTRA_PANEL_ROLES OR Administrator and above
+    - All other tickets (reward, ads, rolls, staff): Administrator and above only
+    """
+    kind = get_ticket_kind(channel)
+
+    if kind == "index":
+        return False
+
+    if kind == "mm":
+        return (
+            member_has_any_role(member, ALL_MM_ROLES)
+            or member_has_any_role(member, EXTRA_PANEL_ROLES)
+        )
+
+    if kind in ("support", "scammer"):
+        return (
+            member_has_any_role(member, EXTRA_PANEL_ROLES)
+            or member_has_any_role(member, ADMIN_AND_ABOVE_ROLES)
+        )
+
+    # reward, staff, ads/rolls (support category), unknown
+    return member_has_any_role(member, ADMIN_AND_ABOVE_ROLES)
 
 
 def is_ticket_opener(channel, user):
@@ -745,17 +820,16 @@ async def create_index_ticket(interaction: discord.Interaction, base_key: str):
         )
     }
 
-    # Allow all staff + the specific index role
-    for role_id_str in ALL_STAFF_ROLES + [role_id]:
-        role = guild.get_role(int(role_id_str))
-        if role:
-            overwrites[role] = discord.PermissionOverwrite(
-                view_channel=True,
-                send_messages=True,
-                attach_files=True,
-                read_message_history=True,
-                manage_messages=True
-            )
+    # ONLY the specific index role can see this ticket (no general staff)
+    role = guild.get_role(int(role_id))
+    if role:
+        overwrites[role] = discord.PermissionOverwrite(
+            view_channel=True,
+            send_messages=True,
+            attach_files=True,
+            read_message_history=True,
+            manage_messages=True
+        )
 
     category = guild.get_channel(INDEX_CATEGORY_ID)
 
@@ -922,17 +996,16 @@ async def create_middleman_ticket(interaction: discord.Interaction, trade_type: 
         )
     }
 
-    # Allow all staff + only the specific middleman role for this ticket type
-    for role_id_str in ALL_STAFF_ROLES + [role_id]:
-        role = guild.get_role(int(role_id_str))
-        if role:
-            overwrites[role] = discord.PermissionOverwrite(
-                view_channel=True,
-                send_messages=True,
-                attach_files=True,
-                read_message_history=True,
-                manage_messages=True
-            )
+    # ONLY the specific middleman role can see this ticket (no general staff)
+    role = guild.get_role(int(role_id))
+    if role:
+        overwrites[role] = discord.PermissionOverwrite(
+            view_channel=True,
+            send_messages=True,
+            attach_files=True,
+            read_message_history=True,
+            manage_messages=True
+        )
 
     category = guild.get_channel(MM_CATEGORY_ID)
 
@@ -1612,11 +1685,11 @@ async def close_command(ctx: commands.Context):
 @bot.command(name="add")
 async def add_command(ctx: commands.Context, *, user_input: str = None):
     """Add a user to the current ticket"""
-    if not has_high_staff_permission(ctx.author):
-        return await ctx.reply("❌ You do not have permission to use this command.", mention_author=False)
-
     if not ctx.channel.topic or not str(ctx.channel.topic).startswith("ticket-"):
         return await ctx.reply("❌ This command can only be used inside ticket channels.")
+
+    if not can_add_or_remove(ctx.author, ctx.channel):
+        return await ctx.reply("❌ You do not have permission to add users to this ticket.", mention_author=False)
 
     if not user_input:
         return await ctx.reply("❌ Please provide a user.\nExample: `+add @user` or `+add 123456789` or `+add username`")
@@ -1643,11 +1716,11 @@ async def add_command(ctx: commands.Context, *, user_input: str = None):
 @bot.command(name="remove")
 async def remove_command(ctx: commands.Context, *, user_input: str = None):
     """Remove a user from the current ticket"""
-    if not has_high_staff_permission(ctx.author):
-        return await ctx.reply("❌ You do not have permission to use this command.", mention_author=False)
-
     if not ctx.channel.topic or not str(ctx.channel.topic).startswith("ticket-"):
         return await ctx.reply("❌ This command can only be used inside ticket channels.")
+
+    if not can_add_or_remove(ctx.author, ctx.channel):
+        return await ctx.reply("❌ You do not have permission to remove users from this ticket.", mention_author=False)
 
     if not user_input:
         return await ctx.reply("❌ Please provide a user.\nExample: `+remove @user` or `+remove 123456789` or `+remove username`")
