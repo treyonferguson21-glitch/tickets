@@ -18,7 +18,15 @@ intents.guilds = True
 
 bot = commands.Bot(command_prefix="+", intents=intents)
 
+# Extra roles that can see every ticket type EXCEPT Index and Middleman, and get pinged
+EXTRA_PANEL_ROLES = [
+    "1546912446004994108",  # supervisor
+    "1545847662392119367",  # head manager
+    "1547283985271365662",  # ticket manager
+]
+
 # All roles that can see Support + Scammer tickets
+# (also used as base for Index/MM visibility — do NOT put EXTRA_PANEL_ROLES here)
 ALL_STAFF_ROLES = [
     "1545842045258825809",  # Creator
     "1545482300601405590",  # Mari
@@ -51,12 +59,18 @@ REWARD_STAFF_ROLES = [
     "1534637036542365787",  # king
     "1546192012435390515",  # overlord
     "1512494871171043541",  # manager
+    "1546912446004994108",  # supervisor
+    "1545847662392119367",  # head manager
+    "1547283985271365662",  # ticket manager
 ]
 
 # Only Creator + Owner can see Ads tickets
 ADS_STAFF_ROLES = [
     "1545842045258825809",  # Creator
     "1512494871171043543",  # owner
+    "1546912446004994108",  # supervisor
+    "1545847662392119367",  # head manager
+    "1547283985271365662",  # ticket manager
 ]
 
 # Only these roles can use +add and +remove
@@ -71,6 +85,8 @@ HIGH_STAFF_ROLES = [
     "1512494871171043540",  # Administrator
     "1545847662392119367",  # head manager
     "1543926509520293908",  # head staff
+    "1546912446004994108",  # supervisor
+    "1547283985271365662",  # ticket manager
 ]
 
 # Only Creator + Owner + Co Owner can see Pay for Rolls tickets
@@ -78,6 +94,9 @@ ROLLS_STAFF_ROLES = [
     "1545842045258825809",  # Creator
     "1512494871171043543",  # owner
     "1544803993480466563",  # co owner
+    "1546912446004994108",  # supervisor
+    "1545847662392119367",  # head manager
+    "1547283985271365662",  # ticket manager
 ]
 
 
@@ -142,6 +161,9 @@ STAFF_PANEL_ROLES = [
     "1512494871171043543",  # owner
     "1544803993480466563",  # co owner
     "1546192012435390515",  # overlord
+    "1546912446004994108",  # supervisor
+    "1545847662392119367",  # head manager
+    "1547283985271365662",  # ticket manager
 ]
 
 # ==================== INDEXING SERVICE ====================
@@ -222,20 +244,26 @@ def save_config():
 
 def get_staff_mentions(ticket_type="support"):
     # Overlord (1546192012435390515) is pinged on every ticket except Index and MM
+    # EXTRA_PANEL_ROLES (supervisor, head manager, ticket manager) are also pinged on every ticket except Index and MM
+    extra = [
+        "1546912446004994108",  # supervisor
+        "1545847662392119367",  # head manager
+        "1547283985271365662",  # ticket manager
+    ]
     if ticket_type == "ads":
         roles = [
             "1545842045258825809",  # Creator
             "1545482300601405590",  # Mari
             "1512494871171043543",  # owner
             "1546192012435390515",  # overlord
-        ]
+        ] + extra
     elif ticket_type == "rolls":
         roles = [
             "1545842045258825809",  # Creator
             "1512494871171043543",  # owner
             "1544803993480466563",  # co owner
             "1546192012435390515",  # overlord
-        ]
+        ] + extra
     elif ticket_type == "support":
         roles = [
             "1545842045258825809",  # Creator
@@ -246,6 +274,8 @@ def get_staff_mentions(ticket_type="support"):
             "1544803993480466563",  # co owner
             "1546192012435390515",  # overlord
             "1545140559365283972",  # extra support ping
+            "1546912446004994108",  # supervisor
+            "1547283985271365662",  # ticket manager
         ]
     else:
         # scammer / reward / default
@@ -257,13 +287,22 @@ def get_staff_mentions(ticket_type="support"):
             "1545847662392119367",  # head manager
             "1544803993480466563",  # co owner
             "1546192012435390515",  # overlord
+            "1546912446004994108",  # supervisor
+            "1547283985271365662",  # ticket manager
         ]
-    return " ".join([f"<@&{r}>" for r in roles])
+    # Deduplicate while preserving order
+    seen = set()
+    unique_roles = []
+    for r in roles:
+        if r not in seen:
+            seen.add(r)
+            unique_roles.append(r)
+    return " ".join([f"<@&{r}>" for r in unique_roles])
 
 
 def has_staff_permission(member: discord.Member):
     try:
-        all_roles = ALL_STAFF_ROLES + SUPPORT_ONLY_ROLES + REWARD_STAFF_ROLES + ADS_STAFF_ROLES + ALL_INDEX_ROLES + ALL_MM_ROLES
+        all_roles = ALL_STAFF_ROLES + SUPPORT_ONLY_ROLES + REWARD_STAFF_ROLES + ADS_STAFF_ROLES + ALL_INDEX_ROLES + ALL_MM_ROLES + EXTRA_PANEL_ROLES
         return any(str(role.id) in all_roles for role in member.roles)
     except:
         return False
@@ -544,6 +583,7 @@ async def create_ticket(interaction: discord.Interaction, ticket_type: str):
         category_id = 1545526574592303134
 
     # Choose which roles can see this ticket
+    # EXTRA_PANEL_ROLES (supervisor, head manager, ticket manager) see every type except Index/MM
     if ticket_type == "reward":
         allowed_roles = REWARD_STAFF_ROLES
     elif ticket_type == "ads":
@@ -551,9 +591,9 @@ async def create_ticket(interaction: discord.Interaction, ticket_type: str):
     elif ticket_type == "rolls":
         allowed_roles = ROLLS_STAFF_ROLES
     elif ticket_type == "support":
-        allowed_roles = ALL_STAFF_ROLES + SUPPORT_ONLY_ROLES
+        allowed_roles = ALL_STAFF_ROLES + SUPPORT_ONLY_ROLES + EXTRA_PANEL_ROLES
     else:  # scammer/report
-        allowed_roles = ALL_STAFF_ROLES
+        allowed_roles = ALL_STAFF_ROLES + EXTRA_PANEL_ROLES
 
     overwrites = {
         guild.default_role: discord.PermissionOverwrite(view_channel=False),
@@ -1034,17 +1074,22 @@ async def create_staff_ticket(interaction: discord.Interaction, ticket_type: str
     )
 
     # Pings:
-    # - Pay for Rolls: Creator + Owner only
-    # - Other staff tickets: Creator, Owner, Co Owner, Overlord
+    # - Pay for Rolls: Creator + Owner + Overlord + EXTRA_PANEL_ROLES
+    # - Other staff tickets: Creator, Owner, Co Owner, Overlord + EXTRA_PANEL_ROLES
+    extra_ping = " ".join([
+        "<@&1546912446004994108>",  # supervisor
+        "<@&1545847662392119367>",  # head manager
+        "<@&1547283985271365662>",  # ticket manager
+    ])
     if ticket_type == "payrolls":
-        ping = "<@&1545842045258825809> <@&1512494871171043543> <@&1546192012435390515>"  # Creator + Owner + Overlord
+        ping = f"<@&1545842045258825809> <@&1512494871171043543> <@&1546192012435390515> {extra_ping}"  # Creator + Owner + Overlord + extra
     else:
         ping = " ".join([
             "<@&1545842045258825809>",  # Creator
             "<@&1512494871171043543>",  # Owner
             "<@&1544803993480466563>",  # Co Owner
             "<@&1546192012435390515>",  # Overlord
-        ])
+        ]) + " " + extra_ping
 
     if ticket_type == "recruitment":
         embed = discord.Embed(
