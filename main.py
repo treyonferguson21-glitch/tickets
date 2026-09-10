@@ -175,14 +175,20 @@ STAFF_CATEGORY_IDS = {
     "mmapplication": 1545919661584158910,  # MM application
 }
 
+# Who can VIEW staff panel tickets (applications).
 STAFF_PANEL_ROLES = [
     "1545842045258825809",  # Creator
-    "1512494871171043543",  # owner
-    "1544803993480466563",  # co owner
-    "1546192012435390515",  # overlord
-    "1546912446004994108",  # supervisor
-    "1545847662392119367",  # head manager
-    "1547283985271365662",  # ticket manager
+    "1540425618620162139",  # Founder
+    "1512494871171043543",  # Owner
+    "1544803993480466563",  # Co Owner
+    "1534637036542365787",  # King
+    "1512494871171043541",  # Manager
+    "1546192012435390515",  # Community Manager
+    "1545847662392119367",  # Head Manager
+    "1546912446004994108",  # Supervisor
+    "1547283985271365662",  # Ticket Manager
+    "1547404766647156876",  # Recruiter
+    "1547401287392301216",  # Head of Recruitment
 ]
 
 # ==================== INDEXING SERVICE ====================
@@ -1147,22 +1153,23 @@ async def create_staff_ticket(interaction: discord.Interaction, ticket_type: str
     )
 
     # Pings:
-    # - Pay for Rolls: Creator + Owner + Overlord + EXTRA_PANEL_ROLES
-    # - Other staff tickets: Creator, Owner, Co Owner, Overlord + EXTRA_PANEL_ROLES
-    extra_ping = " ".join([
-        "<@&1546912446004994108>",  # supervisor
-        "<@&1545847662392119367>",  # head manager
-        "<@&1547283985271365662>",  # ticket manager
+    # - Staff Application: Recruiter + Head of Recruitment only
+    # - Other staff panel options: Creator + Founder + Owner + Co Owner only
+    recruitment_ping = " ".join([
+        "<@&1547404766647156876>",  # Recruiter
+        "<@&1547401287392301216>",  # Head of Recruitment
     ])
-    if ticket_type == "payrolls":
-        ping = f"<@&1545842045258825809> <@&1512494871171043543> <@&1546192012435390515> {extra_ping}"  # Creator + Owner + Overlord + extra
+    high_staff_ping = " ".join([
+        "<@&1545842045258825809>",  # Creator
+        "<@&1540425618620162139>",  # Founder
+        "<@&1512494871171043543>",  # Owner
+        "<@&1544803993480466563>",  # Co Owner
+    ])
+    if ticket_type == "recruitment":
+        ping = recruitment_ping
     else:
-        ping = " ".join([
-            "<@&1545842045258825809>",  # Creator
-            "<@&1512494871171043543>",  # Owner
-            "<@&1544803993480466563>",  # Co Owner
-            "<@&1546192012435390515>",  # Overlord
-        ]) + " " + extra_ping
+        # payrolls, indexprovider, mmapplication
+        ping = high_staff_ping
 
     if ticket_type == "recruitment":
         embed = discord.Embed(
