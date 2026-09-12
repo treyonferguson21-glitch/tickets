@@ -269,7 +269,8 @@ def save_config():
 
 def get_staff_mentions(ticket_type="support"):
     # Overlord (1546192012435390515) is pinged on every ticket except Index and MM
-    # EXTRA_PANEL_ROLES (supervisor, head manager, ticket manager) are also pinged on every ticket except Index and MM
+    # For staff tickets (support / scammer / reward): NO Mari, Co Owner, Manager, or Ticket Manager
+    # Ads / rolls still use their own lists (and still include ticket manager via extra)
     extra = [
         "1546912446004994108",  # supervisor
         "1545847662392119367",  # head manager
@@ -292,28 +293,20 @@ def get_staff_mentions(ticket_type="support"):
     elif ticket_type == "support":
         roles = [
             "1545842045258825809",  # Creator
-            "1545482300601405590",  # Mari
             "1512494871171043543",  # owner
-            "1512494871171043541",  # manager
             "1545847662392119367",  # head manager
-            "1544803993480466563",  # co owner
             "1546192012435390515",  # overlord
             "1545140559365283972",  # extra support ping
             "1546912446004994108",  # supervisor
-            "1547283985271365662",  # ticket manager
         ]
     else:
-        # scammer / reward / default
+        # scammer / reward / default  (staff tickets — no Mari, Co Owner, Manager, Ticket Manager)
         roles = [
             "1545842045258825809",  # Creator
-            "1545482300601405590",  # Mari
             "1512494871171043543",  # owner
-            "1512494871171043541",  # manager
             "1545847662392119367",  # head manager
-            "1544803993480466563",  # co owner
             "1546192012435390515",  # overlord
             "1546912446004994108",  # supervisor
-            "1547283985271365662",  # ticket manager
         ]
     # Deduplicate while preserving order
     seen = set()
